@@ -1,0 +1,600 @@
+# platform-contract.yaml — juntospec ↔ juntogen machine-readable contract.
+#
+# Identifiers and structural invariants only. No prose, no semantics not
+# expressible as identifiers. Consumers (juntogen, validators) MUST NOT rely
+# on free-form text beyond the frozen primitive `role` one-liners below.
+#
+# anchor_status semantics:
+#   pending — anchor declared, juntogen not yet emitting canonical profile.
+#   active  — juntogen emits canonical profile text carrying the anchor.
+# All 8 primitives remain `pending` until juntogen emits canonical profile
+# text carrying each anchor (deferred to the plugin-shape work that lands
+# canonical profiles under oj-{platform}/agents/).
+---
+version: "0.1.0"
+contract_name: "juntospec-platform-contract"
+generated_for: "claude"
+
+# --- canonical_ids -------------------------------------------------------
+# Every [CANONICAL: id] marker defined across juntospec/*.md.
+# Multi-id lines (e.g., D24 §1 chapter bracket) expanded into one entry each.
+# `section` is the containing H2/H3 in the source file — human pointer, not
+# a parser contract. File moves (BL-025-f) update `file`; anchors do not.
+canonical_ids:
+  - id: "circuit-breaker"
+    file: "D40-quality-framework.md"
+    section: "§9 Circuit Breaker"
+  - id: "conflict-resolution"
+    file: "D24-triage-engine.md"
+    section: "§6 Escalation Authority"
+  - id: "constraint-classification"
+    file: "D32-execution-models.md"
+    section: "§2 Synthesis Gate"
+  - id: "contract-format"
+    file: "M08-validation-evolution.md"
+    section: "§2.1 Contract Format"
+  - id: "delegation-boundary-invariant"
+    file: "D08-core-protocol.md"
+    section: "Delegation Boundary"
+  - id: "derivation-architecture"
+    file: "M16-derivation-architecture.md"
+    section: "§1 Purpose and Relationship to Other Specs"
+  - id: "derivation-chain-format"
+    file: "M16-derivation-architecture.md"
+    section: "§4 Derivation Chain Format"
+  - id: "derivation-chains"
+    file: "M16-derivation-architecture.md"
+    section: "§5 Derivation Chains for EXACT Elements"
+  - id: "derivation-layers"
+    file: "M16-derivation-architecture.md"
+    section: "§2 The Derivation Layer Model"
+  - id: "derivation-measurements"
+    file: "M16-derivation-architecture.md"
+    section: "§6 Measurement Framework"
+  - id: "evolution-constraints"
+    file: "M08-validation-evolution.md"
+    section: "§9 Evolution Constraints"
+  - id: "execution-models"
+    file: "D32-execution-models.md"
+    section: "Overview"
+  - id: "findings-ledger"
+    file: "D32-execution-models.md"
+    section: "§2 Synthesis Gate"
+  - id: "generation-implications"
+    file: "M16-derivation-architecture.md"
+    section: "§8 Implications for Generation Prompts"
+  - id: "handback-protocol"
+    file: "D40-quality-framework.md"
+    section: "§1 Handback Protocol"
+  - id: "hook-inject-profile"
+    # NOTE: This canonical_id is sourced from a juntogen-tracked file
+    # (juntogen/claude/D64-tooling.md), NOT a juntospec file. Per BL-025-f,
+    # platform-binding specs (D64) live in juntogen alongside the generator
+    # that consumes them. The `file:` field below is recorded for traceability;
+    # validators that resolve it must look outside this repo.
+    file: "claude/D64-tooling.md"
+    file_repo: "juntogen"
+    section: "Subcommands"
+  - id: "hypothesis-protocol"
+    file: "M08-validation-evolution.md"
+    section: "§6 Hypothesis-Driven Evolution"
+  - id: "measurement-framework"
+    file: "M08-validation-evolution.md"
+    section: "§5 Measurement Framework"
+  - id: "measurement-record-schema"
+    file: "M08-validation-evolution.md"
+    section: "§5.1 Measurement Record Schema"
+  - id: "operational-learning"
+    file: "M08-validation-evolution.md"
+    section: "§6.5 Operational Learning"
+  - id: "org-context-map"
+    file: "D80-org-coordination.md"
+    section: "§5 Cross-Project Context Map"
+  - id: "org-definition"
+    file: "D80-org-coordination.md"
+    section: "§1 Org Concept"
+  - id: "org-inheritance"
+    file: "D80-org-coordination.md"
+    section: "§2 Three-Tier Inheritance Model"
+  - id: "org-layout"
+    file: "D80-org-coordination.md"
+    section: "§3 Org-Level Repository Layout"
+  - id: "org-reference-scoping"
+    file: "D80-org-coordination.md"
+    section: "§4 Reference File Scoping"
+  - id: "perspective-format"
+    file: "D32-execution-models.md"
+    section: "§1 PERSPECTIVE Block Format"
+  - id: "platform-capabilities"
+    file: "M16-derivation-architecture.md"
+    section: "§3 Platform Capability Ingestion (Layer 0)"
+    refinement_notes: "Normative instance schema lives in juntogen/claude/steps/step-00-platform-ingestion.md §'Capability Schema'."
+  - id: "quality-gates"
+    file: "D40-quality-framework.md"
+    section: "§8 Quality Gates"
+  - id: "spawn-patterns"
+    file: "D32-execution-models.md"
+    section: "§2 Moderate Tier: Consult Engagement"
+  - id: "spawn-templates"
+    file: "D32-execution-models.md"
+    section: "§2 Three-Phase Spawn Pattern"
+  - id: "stakeholder-signals"
+    file: "D24-triage-engine.md"
+    section: "§3 Stakeholder Signal Table"
+  - id: "synthesis-gate"
+    file: "D32-execution-models.md"
+    section: "§2 Synthesis Gate"
+  - id: "synthetic-problems"
+    file: "M08-validation-evolution.md"
+    section: "§4 Synthetic Problem Specification"
+  - id: "taxonomy-evolution"
+    file: "M16-derivation-architecture.md"
+    section: "§7 Taxonomy Evolution"
+  - id: "tension-classification"
+    file: "D24-triage-engine.md"
+    section: "§7 Tension Classification"
+  - id: "tier-aware-loading"
+    file: "D48-reference-system.md"
+    section: "Tier-Aware Loading"
+  - id: "triage-criteria"
+    file: "D24-triage-engine.md"
+    section: "§1 Triage Algorithm"
+  - id: "triage-scoring"
+    file: "D24-triage-engine.md"
+    section: "§1 Triage Algorithm"
+  - id: "user-checkpoint-principle"
+    file: "D24-triage-engine.md"
+    section: "§6b Generalized User Checkpoint Principle"
+  - id: "validation-contracts"
+    file: "M08-validation-evolution.md"
+    section: "§1 Purpose and Relationship to Other Specs"
+  - id: "validation-pipeline"
+    file: "M08-validation-evolution.md"
+    section: "§7 Pipeline Architecture"
+  - id: "validation-taxonomy"
+    file: "M08-validation-evolution.md"
+    section: "§2 Validation Contract Taxonomy"
+  - id: "validation-tiers"
+    file: "M08-validation-evolution.md"
+    section: "§3 Three-Tier Validation Model"
+
+# --- primitives ----------------------------------------------------------
+# Exactly 8 coordination primitives. `role` strings are frozen — any change
+# requires a coordinated juntospec + juntogen + oj-claude release.
+# `anchor_status: pending` for all until juntogen emits canonical profiles.
+primitives:
+  - name: "Consult"
+    role: "delegation primitive — manager invokes a single expert sub-agent for a scoped task, receives a handback"
+    anchor: "canonical-consult"
+    anchor_status: "pending"
+  - name: "Convene"
+    role: "team-formation primitive — manager assembles a multi-expert team for parallel deliberation with a deputy coordinator"
+    anchor: "canonical-convene"
+    anchor_status: "pending"
+  - name: "Inform"
+    role: "peer-messaging primitive — intra-team relay of findings and questions between agents during an active engagement"
+    anchor: "canonical-inform"
+    anchor_status: "pending"
+  - name: "Onboard"
+    role: "spawn-time profile-injection primitive — platform hook fires when a sub-agent is created and injects its role profile as context"
+    anchor: "canonical-onboard"
+    anchor_status: "pending"
+  - name: "CONDUCTOR.md"
+    role: "manager protocol file — loaded by the platform at session start; defines the manager-coordinator contract and triage protocol"
+    anchor: "canonical-conductor"
+    anchor_status: "pending"
+    abstract_name: "manager-protocol-file"  # spec-prose alias for the abstract concept; concrete filename binding remains CONDUCTOR.md per platform contract
+  - name: "install-root"
+    role: "filesystem-install-root primitive — the directory under which OpenJunto installs its protocol, agents, reference, templates, and commands; concrete path binding (e.g., `~/.claude/` on Claude Code) lives in platform-defaults.yaml"
+    anchor: "canonical-install-root"
+    anchor_status: "pending"
+  - name: "model-tier"
+    role: "cognitive-demand abstraction primitive — derivation chains and protocol prose refer to model capability classes (routine, implementation, reasoning) with cost ratios; concrete model-id binding (e.g., haiku/sonnet/opus) lives in platform-defaults.yaml"
+    anchor: "canonical-model-tier"
+    anchor_status: "pending"
+  - name: "operational-namespace"
+    role: "OpenJunto-owned filesystem namespace primitive — `state/`, `evolution/`, and `archive/` subdirectories under {install-root} that hold session/measurement/artifact data; namespace is OpenJunto's, not the platform's, even though the directory tree happens to live under the platform's install root"
+    anchor: "canonical-operational-namespace"
+    anchor_status: "pending"
+
+# --- layout --------------------------------------------------------------
+# Structural invariants of the juntospec repo. Consumers (juntogen, validators)
+# rely on these to locate and order specs.
+layout:
+  spec_file_pattern: "^[DFM]\\d{2}-[a-z0-9-]+\\.md$"
+  spec_root: "."
+  foundational_file: "F08-axioms.md"
+  architecture_file: "F16-architecture.md"
+  numbering_gap: 8
+  reading_order:
+    - {layer: "foundations", prefix: "F"}
+    - {layer: "domain",      prefix: "D"}
+    - {layer: "meta",        prefix: "M"}
+  # All 14 D/F/M files carry `id`, `title`, `layer` in frontmatter (verified
+  # 2026-04-20). If a future spec drops a key, relax this set in the same
+  # commit that lands the new file.
+  frontmatter_required_keys: ["id", "title", "layer"]
+
+  # spec_files — BL-025-h.1: whole-file references for step prompts.
+  # Each entry registers a file by basename for resolution via the
+  # `[FILE: <basename>]` marker. Resolution rules:
+  #
+  #   file_repo: ""           => resolve under SPEC_DIR (juntospec default)
+  #   file_repo: "juntospec"  => resolve under SPEC_DIR (explicit)
+  #   file_repo: "juntogen"   => resolve under JUNTOGEN_ROOT
+  #
+  # Optional `path:` overrides `file:` for path resolution while `file:`
+  # remains the basename used in the marker syntax. Use `path:` for
+  # cross-repo prefixes (e.g. juntogen entries must include the `claude/`
+  # subdirectory).
+  #
+  # Two-marker model (TENSION-1):
+  #   [CANONICAL: id]          — section anchor; resolves to host file
+  #   [FILE: basename]         — whole-file reference
+  #
+  # Adding a new spec_files entry MUST be paired with the file actually
+  # existing at the resolved path; contract-validate.sh's
+  # spec-file-marker-closure check fails closed on dangling entries.
+  #
+  # Entry shape:
+  #   - file: "F16-architecture.md"        # basename used in [FILE: ...]
+  #     file_repo: ""                       # "" | "juntospec" | "juntogen"
+  #     path: ""                            # optional override; defaults to file
+  spec_files:
+    - file: "F08-axioms.md"
+      file_repo: "juntospec"
+    - file: "F16-architecture.md"
+      file_repo: "juntospec"
+    - file: "D08-core-protocol.md"
+      file_repo: "juntospec"
+    - file: "D72-enterprise-overlay.md"
+      file_repo: "juntospec"
+    - file: "D64-tooling.md"
+      file_repo: "juntogen"
+      path: "claude/D64-tooling.md"
+
+# --- output_classes ------------------------------------------------------
+# BL-025-m.1 (F3): two-class taxonomy for files emitted into the generated
+# plugin tree. Class membership is mutually exclusive — every committed
+# output file belongs to exactly one class.
+#
+#   data  — deterministic / static / template-driven. Byte-diff applies.
+#           Re-running the generator with no input change must produce
+#           byte-identical output. Examples: plugin.json, hooks.json,
+#           platform-snapshot.yaml, bin/lib/contracts.sh.
+#   prose — LLM-generated narrative or LLM-generated helper script.
+#           Byte-diff does NOT apply (temperature drift, paraphrase).
+#           Examples: every *.md, bin/oj-helper. Validation is via shape
+#           and contract checks (frontmatter parse, contract-string-
+#           reference, etc.), never literal-byte equality.
+#
+# Consumer: juntogen/claude/validation/scripts/structural-diff.sh uses
+# this taxonomy to decide byte-diff vs. shape-only-diff per file when
+# comparing a fresh regen tree against the frozen plugin-tree snapshot.
+output_classes:
+  data:
+    - "*.json"
+    - "*.yaml"
+    - "bin/lib/*.sh"
+  prose:
+    - "*.md"
+    - "bin/oj-helper"
+
+# --- banned_terms --------------------------------------------------------
+# BL-025-e: machine-readable source of truth for the BL-025-c/d vocabulary
+# audit. Lists Claude-platform identifiers and concrete bindings that MUST
+# NOT appear in core spec corpus prose. Audit script reads this block via
+# the python3 yaml helper and fails closed on any occurrence outside the
+# `keep_list:` exemption block AND outside the regions enumerated in
+# `exempt_regions:`.
+#
+# Entry shape:
+#   - term: "Task tool"             # required, the literal/regex to match
+#     kind: "literal" | "regex"     # required; literal = byte-exact substring
+#     scope: "core-spec-corpus"     # required; pinned for now (D/F/M*.md +
+#                                   #   README.md + MANIFEST.md at juntospec root)
+#     assertion: "s13"              # required; tier-a-assertions.sh section that
+#                                   #   enforces this term. Permitted: s13 (BL-026
+#                                   #   platform-tool literals), s14 (filesystem
+#                                   #   path literal), s15 (CLAUDE.md literal),
+#                                   #   s16 (concrete model-id regex). Adding a
+#                                   #   new entry with `assertion: s13` (etc.) is
+#                                   #   the supported way to extend tier-a hygiene
+#                                   #   without code changes (BL-025-e.1).
+#     exempt_regions:               # optional; named regions where the term
+#                                   #   may appear without a keep_list entry
+#       - "m16-section-3"           # M16 §3 platform-capabilities anchor
+#       - "d08-verbatim-blocks"     # D08 (verbatim): fenced reproductions
+#     note: "Free-form rationale (optional)"
+#
+# Region semantics are implemented in
+# juntogen/claude/validation/scripts/lib/exempt-regions.awk — entry shape
+# here is data; the awk helper is the executable contract. Mirror of the
+# tier-a-assertions.sh §13/§15 region machinery (do not modify there;
+# this is a parallel readonly mirror per BL-025-e/f boundary).
+banned_terms:
+  # BL-025-c sweep targets — Claude Code platform tool/hook identifiers.
+  - term: "Task tool"
+    kind: "literal"
+    scope: "core-spec-corpus"
+    assertion: "s13"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Claude Code Agent tool — spec corpus uses Consult primitive"
+  - term: "TeamCreate"
+    kind: "literal"
+    scope: "core-spec-corpus"
+    assertion: "s13"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Claude Code TeamCreate tool — spec corpus uses Convene primitive"
+  - term: "SendMessage"
+    kind: "literal"
+    scope: "core-spec-corpus"
+    assertion: "s13"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Claude Code SendMessage tool — spec corpus uses Inform primitive"
+  - term: "SubagentStart"
+    kind: "literal"
+    scope: "core-spec-corpus"
+    assertion: "s13"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Claude Code SubagentStart hook event — spec corpus uses Onboard primitive"
+  # BL-025-d sweep targets — concrete bindings that must use abstract primitives.
+  - term: "~/.claude/"
+    kind: "literal"
+    scope: "core-spec-corpus"
+    assertion: "s14"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Claude filesystem path — spec corpus uses {install-root}/ primitive"
+  - term: "CLAUDE.md"
+    kind: "literal"
+    scope: "core-spec-corpus"
+    assertion: "s15"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Claude manager-protocol filename — spec corpus uses CONDUCTOR.md / 'manager protocol file'"
+  # BL-025-d concrete model-id sweep targets. Word-boundary semantics enforced
+  # by the regex form (BSD-awk-portable: non-word char neighbors or line edges).
+  - term: "(^|[^a-zA-Z0-9_-])(haiku|sonnet|opus)([^a-zA-Z0-9_-]|$)"
+    kind: "regex"
+    scope: "core-spec-corpus"
+    assertion: "s16"
+    exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
+    note: "Concrete Claude model IDs — spec corpus uses {tier-routine}/{tier-implementation}/{tier-reasoning}"
+
+# --- keep_list -----------------------------------------------------------
+# Surviving banned-term occurrences after the BL-025-c sweep. Each entry
+# documents WHY a banned term (Task tool, TeamCreate, SendMessage,
+# SubagentStart) remains in core spec prose — sweep auditors fail closed
+# on any unlisted occurrence.
+#
+# Entry shape (when populated):
+#   - file: "F08-axioms.md"          # required, path relative to juntospec root
+#     line: 42                        # required, int OR "42-47" (range, inclusive)
+#     term: "Task tool"               # required, EXACT bytes audit must match
+#     match_kind: "literal"           # literal | regex (default literal)
+#     context_hash: "a3f9c2"          # first 8 chars of sha256 of the line content
+#                                     # (computed at signoff; detects edits to the
+#                                     # protected line that would invalidate the entry)
+#     reason: "historical-anchor"     # one of:
+#                                     #   historical-anchor          — Junto-origin / Franklin prose
+#                                     #   platform-binding-surface   — capability schemas, didactic
+#                                     #     "X on Claude Code is Y" mappings, AND first-occurrence
+#                                     #     bridge prose binding a primitive to its Claude name
+#                                     #   snapshot-doc               — frozen artifact reproduction
+#                                     #   filesystem-bridge          — BL-025-d: dual-render bridge
+#                                     #     prose anchoring `{install-root}` primitive to its
+#                                     #     Claude rendering `~/.claude/`; one canonical anchor
+#                                     #     in F16 plus README/MANIFEST cross-references
+#                                     #   manager-protocol-bridge    — BL-025-d: dual-render bridge
+#                                     #     prose anchoring "manager protocol file" / `CONDUCTOR.md`
+#                                     #     to its Claude rendering `CLAUDE.md`; README/MANIFEST
+#                                     #     adopter-onboarding cross-references
+#                                     #   external-url               — BL-025-d: live URL pointing
+#                                     #     into the org-level `.claude` repository on GitHub —
+#                                     #     literal repo name, not a sweep target
+#     signed_off_by: "senior-technical-writer"
+#     signed_off_at: "2026-04-29"     # ISO date
+#     note: "Franklin's Junto origin prose"  # optional, free-form
+keep_list:
+  # BL-026 (2026-05-04): Removed 2 BL-025-c Stage A D32 entries (D32:83 "Task tool",
+  # D32:181 "TeamCreate"). The D32 first-occurrence binding bridges were rewritten
+  # to delegate platform-name binding to M16 §3 [platform-capabilities] anchor —
+  # the bridge prose no longer contains banned terms. See decision artifact
+  # `.claude/artifacts/bl-026-d64-placement.md` (sweep section).
+  # BL-025-c Stage A — M16 §3 platform capability ingestion
+  - file: "M16-derivation-architecture.md"
+    line: 116
+    term: "Task tool"
+    match_kind: "literal"
+    context_hash: "bc7ba301"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Tool-manifest table row documents primitive→platform-name mapping (Consult↔Task tool et al.). Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 116
+    term: "TeamCreate"
+    match_kind: "literal"
+    context_hash: "bc7ba301"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Same line as Task tool entry — documents Convene↔TeamCreate binding. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 116
+    term: "SendMessage"
+    match_kind: "literal"
+    context_hash: "bc7ba301"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Same line — documents Inform↔SendMessage binding. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 116
+    term: "SubagentStart"
+    match_kind: "literal"
+    context_hash: "bc7ba301"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Same line — documents Onboard↔SubagentStart binding. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 119
+    term: "SubagentStart"
+    match_kind: "literal"
+    context_hash: "ca4059b5"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Hook-system table row binds Onboard primitive to SubagentStart platform name. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 147
+    term: "TeamCreate"
+    match_kind: "literal"
+    context_hash: "e0722935"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "YAML comment binding TeamCreate platform name to Convene primitive. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 148
+    term: "TeamCreate"
+    match_kind: "literal"
+    context_hash: "27c73d15"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "YAML literal `name: \"TeamCreate\"` in capability-schema example — platform identifier, not spec vocabulary. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 172
+    term: "SubagentStart"
+    match_kind: "literal"
+    context_hash: "c10c0834"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "YAML comment binding SubagentStart hook point to Onboard primitive. Hash recomputed BL-027 mechanical pass."
+  - file: "M16-derivation-architecture.md"
+    line: 173
+    term: "SubagentStart"
+    match_kind: "literal"
+    context_hash: "1437d548"
+    reason: "platform-binding-surface"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "YAML literal `point: \"SubagentStart\"` in capability-schema example — platform identifier. Hash recomputed BL-027 mechanical pass."
+  # BL-025-f (2026-05-06): Removed 38 keep_list entries that pointed at files
+  # in the (then-juntospec-tracked) Claude generator tree, namely
+  # platform-defaults.yaml, validation/anti-patterns.md, validation/checklist.md,
+  # validation/smoke-tests.md. Those files moved wholesale into the juntogen
+  # repo (juntogen/claude/...). The keep_list scoping convention covers the
+  # core spec layer ({D,F,M}*.md at juntospec root, plus README.md/MANIFEST.md);
+  # files under juntogen/ are already platform-bound by repo membership and do
+  # not need per-occurrence exemption entries (vocabulary-audit.sh scans only
+  # the juntospec corpus). Pre-move count: 54. Post-move count: 16. See
+  # BL-025-f synthesis ledger at .claude/artifacts/bl-025-f-synthesis-2026-05-06.md.
+
+  # BL-025-d (2026-05-04): vocabulary sweep — `~/.claude/` → `{install-root}/`,
+  # `CLAUDE.md` → `CONDUCTOR.md` / "manager protocol file", `haiku/sonnet/opus`
+  # → `{tier-routine}/{tier-implementation}/{tier-reasoning}` (with cost
+  # ratios). Entries below capture remaining occurrences in core spec corpus
+  # that are deliberate dual-render bridges or external URLs. D08 verbatim
+  # blocks (M08 [EXACT] string-match contracts) are exempted by the
+  # `(verbatim):`-marker awk state machine in tier-a-assertions.sh §A14/A15
+  # (no per-occurrence keep_list entries needed — region exemption). M16 §3
+  # platform-capabilities snapshot is region-exempted (mirrors A13 BL-026
+  # exemption pattern; haiku/sonnet/opus YAML rows are Layer 0 anchor).
+  # See decision artifact `.claude/artifacts/bl-025-d-implementation-handback.md`.
+
+  # A14 — `~/.claude` filesystem-path bridge prose
+  # BL-025-f hash/line refresh: F16:20/63 hashes recomputed (the bridge
+  # sentences were edited to point at the post-move D64 location in
+  # juntogen/claude/D64-tooling.md). README/MANIFEST line numbers shifted
+  # due to repo-table additions and DAG footnote; hashes unchanged because
+  # the exact line content for the keep_list anchors is byte-identical.
+  - file: "F16-architecture.md"
+    line: 20
+    term: "~/.claude/"
+    match_kind: "literal"
+    context_hash: "f93e6750"
+    reason: "filesystem-bridge"
+    binding_target: "{install-root} primitive ↔ ~/.claude/ (Claude Code filesystem path)"
+    scope: "definitional"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Canonical installed-layout anchor — single bridge sentence resolving abstract `{install-root}` primitive to its Claude rendering. Hash recomputed BL-025-f after the bridge prose was rewritten to point at the post-move D64 location."
+  - file: "F16-architecture.md"
+    line: 63
+    term: "{install-root}/"
+    match_kind: "literal"
+    context_hash: "ba7f260d"
+    reason: "non-mechanical-1"
+    binding_target: "{install-root} primitive ↔ ~/.claude/ (Claude Code filesystem path)"
+    scope: "definitional"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Enterprise-overlay sub-tree intro — parallel bridge to F16:20 main-tree intro per F11 ledger directive (BL-025-d Phase 4 iteration). Hash recomputed BL-025-f."
+  - file: "F16-architecture.md"
+    line: 63
+    term: "~/.claude/"
+    match_kind: "literal"
+    context_hash: "ba7f260d"
+    reason: "filesystem-bridge"
+    binding_target: "{install-root} primitive ↔ ~/.claude/ (Claude Code filesystem path)"
+    scope: "cross-reference"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Same line as F16:63 {install-root}/ entry — `~/.claude/` appears as the explicit Claude rendering of the abstract primitive. BL-025-e audit caught this overlap on first run; entry added to make the dual-render bridge explicit per keep_list semantics. Hash recomputed BL-025-f."
+  - file: "README.md"
+    line: 20
+    term: ".claude/CLAUDE.md"
+    match_kind: "literal"
+    context_hash: "3714230f"
+    reason: "external-url"
+    binding_target: "openjunto/.claude GitHub repository (literal repo name, not sweep target)"
+    scope: "cross-reference"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Adopter onboarding link to org-level repository on GitHub; the URL path is the repo name, not a filesystem-install-root reference. Line moved 18→20 in BL-025-f due to repo-table addition (juntogen row); hash unchanged."
+  - file: "README.md"
+    line: 90
+    term: "~/.claude/.oj-version"
+    match_kind: "literal"
+    context_hash: "58474f90"
+    reason: "filesystem-bridge"
+    binding_target: "{install-root}/.oj-version primitive ↔ ~/.claude/.oj-version (Claude Code rendering)"
+    scope: "cross-reference"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Versioning paragraph dual-renders `{install-root}/.oj-version` with explicit `(rendered as ~/.claude/.oj-version on Claude Code)` bridge. Line moved 89→90 in BL-025-f; hash unchanged."
+  - file: "README.md"
+    line: 107
+    term: "openjunto/.claude/CLAUDE.md"
+    match_kind: "literal"
+    context_hash: "ef0a4f33"
+    reason: "historical-anchor"
+    binding_target: "Historical-keep-list documentation (Junto-origin keep-list itself)"
+    scope: "definitional"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Glossary entry documenting the historical-anchor keep_list itself; references the org-level CLAUDE.md path that contains a Franklin-Junto reference. Self-referential to the keep-list machinery. Line moved 106→107 in BL-025-f; hash unchanged."
+  - file: "MANIFEST.md"
+    line: 68
+    term: "CLAUDE.md"
+    match_kind: "literal"
+    context_hash: "38137852"
+    reason: "manager-protocol-bridge"
+    binding_target: "Manager protocol file primitive ↔ CLAUDE.md (Claude Code rendering)"
+    scope: "cross-reference"
+    signed_off_by: "senior-technical-writer"
+    signed_off_at: "2026-05-06"
+    note: "Generation-prompt output column dual-renders manager protocol file with `(rendered as CLAUDE.md on Claude Code)` bridge. Line moved 59→68 in BL-025-f (D64 row drop + DAG footnote insertion + Generation-prompt section intro added); hash unchanged."
+
+  # A15 — `CLAUDE.md` literal bridge prose (overlap with A14 entries above
+  # for README:20 and README:107 covers both terms — the line content is
+  # the same for both terms; the entries above are sufficient).
+  # README:20 also matches A15 (CLAUDE.md in URL path) — same line content.
+  # README:107 also matches A15 — same line content.
+  # MANIFEST:68 already entered above for A15.
+  # No additional A15-only entries are required.
+  # Line numbers refreshed BL-025-f (README/MANIFEST shifted due to repo-table
+  # update and Generation-prompt section intro/DAG footnote additions).
