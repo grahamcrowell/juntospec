@@ -111,12 +111,11 @@ The platform reads `{install-root}/settings.json` and applies:
 - **Model**: Sets the default model tier (typically reasoning)
 
 ### 2. SessionStart Hook
-Before the first user message, the `SessionStart` hook fires:
-```bash
-version=$(cat {install-root}/.oj-version 2>/dev/null || echo 'unknown')
-echo "OpenJunto v${version} active — OpenJunto coordination system" >&2
+Before the first user message, the `SessionStart` hook fires. The hook command resolves the manager protocol file and injects it as `additionalContext` (see [hook-conductor-inject](juntogen/claude/D64-tooling.md#hook-conductor-inject)); as part of that same path it prints a version banner to stderr confirming OpenJunto is active:
 ```
-Prints a version banner to stderr confirming OpenJunto is active.
+OpenJunto v${version} active — OpenJunto coordination system
+```
+`${version}` is read from the plugin package's `VERSION` file (the concrete path binding lives in `juntogen/claude/D64-tooling.md`; on Claude Code it resolves to `${CLAUDE_PLUGIN_ROOT}/VERSION`), falling back to `unknown` if the file is absent. The banner is written to **stderr only** so it never corrupts the stdout JSON payload that carries the manager protocol. The legacy `{install-root}/.oj-version` marker (a Makefile-era artifact) is **not** read — that file is detected and superseded by the legacy-migration path.
 
 ### 3. Manager Persona Activation
 The platform reads `{install-root}/CONDUCTOR.md` (the manager protocol file) as system context, defining the Manager persona and coordination protocol. If a project-local manager protocol file exists, it is also loaded (project-specific instructions layer on top of global protocol).
@@ -271,8 +270,9 @@ The installer copies files from `src/` to `{install-root}/` (the platform-bindin
 <!-- Canonical source: juntogen/claude/D64-tooling.md § inject-profile. Architectural perspective below. -->
 
 ### SessionStart Hook
-- **When**: Before first user message in a session
-- **Command**: Print version banner to stderr
+- **When**: Before first user message in a session (session start; not on plugin reload)
+- **Command**: Inject the manager protocol file as `additionalContext` (stdout JSON) and print a version banner to stderr (see [hook-conductor-inject](juntogen/claude/D64-tooling.md#hook-conductor-inject))
+- **Output**: stdout = `hookSpecificOutput.additionalContext` JSON; stderr = version banner (banner is stderr-only so it cannot corrupt the stdout payload)
 - **Timeout**: 5 seconds
 - **Failure mode**: Graceful (if hook fails, Claude Code proceeds normally)
 
