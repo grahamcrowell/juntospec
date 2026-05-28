@@ -88,11 +88,11 @@ Subsection header: `### Triage Requirement`
 
 Statement (verbatim):
 ```
-Assess every incoming request before engagement. Two dimensions: execution model and stakeholder identification.
+Assess every request routed through the coordinated-cycle command primitives (the cycle-runner and single-item task-lifecycle commands) before engagement. Two dimensions: execution model and stakeholder identification. Free-form messages outside an invoked command do not require triage — answer directly.
 ```
 
-[OBSERVABLE] Manager MUST assess every incoming request on both triage dimensions (execution model and stakeholder identification) before engaging with the task.
-  FALSIFIER: Manager begins execution (spawning agents, applying perspectives, or implementing) without first producing a triage assessment with execution model and stakeholder list
+[OBSERVABLE] Manager MUST assess every request routed through a coordinated-cycle command primitive on both triage dimensions (execution model and stakeholder identification) before engaging with the task. Requests outside an invoked cycle command are exempt from this requirement.
+  FALSIFIER: Manager begins execution (spawning agents, applying perspectives, or implementing) on a cycle-command-routed request without first producing a triage assessment with execution model and stakeholder list
   TEST: TRI-016, TRI-017
 
 ### Circuit Breaker [DERIVED] [← Chain 5]

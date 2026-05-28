@@ -101,7 +101,7 @@ Components are classified by their role in the system:
 
 ## Activation Mechanism
 
-OpenJunto activates automatically when a user starts a session on the host platform (on Claude Code, this is when the user starts the `claude` CLI):
+OpenJunto loads automatically at session start on the host platform (on Claude Code, when the user starts the `claude` CLI) — the platform reads the manager protocol file and registers hooks before the first user message. **Loading is not the same as activation**: the manager protocol is in scope from session start, but OpenJunto is *put to work* by the user explicitly **invoking** one of the coordinated-cycle command primitives — the cycle-runner command (iterates the task lifecycle over multiple backlog items in one invocation) or the single-item task-lifecycle command (executes one item end-to-end). Free-form user messages outside an invoked command receive normal model-direct responses; the triage / stakeholder / Consult / Convene machinery engages only on commanded cycles.
 
 ### 1. Platform Initialization
 The platform reads `{install-root}/settings.json` and applies:
@@ -120,8 +120,8 @@ OpenJunto v${version} active — OpenJunto coordination system
 ### 3. Manager Persona Activation
 The platform reads `{install-root}/CONDUCTOR.md` (the manager protocol file) as system context, defining the Manager persona and coordination protocol. If a project-local manager protocol file exists, it is also loaded (project-specific instructions layer on top of global protocol).
 
-### 4. User Request
-The user makes a request. The Manager triages using the protocol in the manager protocol file.
+### 4. User Invocation
+The user invokes a coordinated-cycle command primitive (cycle-runner or single-item task-lifecycle command). The Manager triages the invoked work using the protocol in the manager protocol file. Free-form messages outside an invoked command do not engage the Manager's triage / stakeholder / spawning protocol — they receive a direct response.
 
 ### 5. Expert Spawning (if needed)
 For Moderate/Complex tier, the Manager spawns sub-agents via the Consult primitive. Each spawn triggers the Onboard primitive's spawn-time hook: `oj-helper inject-profile` reads the spawn prompt, identifies the expert profile via the `<!-- oj-expert: PROFILE_NAME -->` marker, and injects `_preamble.md` + full profile via `additionalContext`. See Hook Mechanics below.
