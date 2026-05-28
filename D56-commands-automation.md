@@ -128,7 +128,7 @@ Create atomic commits with clear messages. **No "Co-Authored-By" lines or AI att
 Brief retrospective on what worked and what to improve. For Complex tier, write to `.claude/archive/retros/` using `retrospective.md` template.
 
 #### Dev Mode Feedback
-Run `oj-helper feedback-path` in bash. If output is empty (dev mode off), skip. Otherwise the output is the file path — write the feedback file using the format defined in the Dev Mode Feedback section. Each cycle produces exactly one new file.
+Run `oj-helper feedback-path` in bash. If output is empty (dev mode off), skip. Otherwise the output is the file path — write the feedback file using the format defined in the Dev Mode Feedback section. Each command invocation produces exactly one new file: the single-item task-lifecycle command writes once per invocation (= once per item); the cycle-runner command writes once per invocation summarizing all items processed in the run (not one file per item, to avoid file spam).
 
 #### Persist Operational Learnings
 
@@ -146,13 +146,18 @@ Tell the user the cycle is complete, summarize what was done, and suggest `/clea
 
 ### Constraints
 
-- **Scope to ONE backlog item** per cycle to keep changes bounded and reviewable
+- **One item per task-lifecycle iteration** — a single execution of the 5-phase lifecycle (Discover → Triage → Execute → Deliver → Learn) is scoped to exactly ONE backlog item, keeping changes bounded and reviewable
+- **Cycle runner iterates the lifecycle** — the cycle-runner command (which drives the lifecycle over the backlog) executes the 5-phase lifecycle one item at a time, committing per item and re-entering Phase 1 to select the next highest-priority unblocked item, until a budget/safety gate trips
 
-[INVARIANT] Each task lifecycle cycle MUST be scoped to exactly one backlog item. Multiple items require multiple cycles.
-  FALSIFIER: A single task lifecycle cycle works on more than one backlog item simultaneously
+[INVARIANT] One execution of the task lifecycle (one Phase-1-through-Phase-5 pass) MUST be scoped to exactly one backlog item. The single-item task-lifecycle command (which performs exactly one such pass) MUST NOT operate on more than one item.
+  FALSIFIER: A single task lifecycle pass works on more than one backlog item simultaneously, OR the single-item task-lifecycle command advances to a second item without the user re-invoking it
   TEST: CMD-003, CMD-004
 
-- **Atomic commits**: Small, focused commits over large monolithic ones
+[INVARIANT] The cycle-runner command MUST iterate the task lifecycle one item at a time with a per-item commit boundary: each item's lifecycle pass completes (including the Phase 4 commit + verification gate showing a clean working tree) BEFORE the runner selects the next item. The runner MUST stop and surface control to the user when ANY of the following budget/safety gates trip: (a) token/context budget runs low; (b) the next selected item triages to Complex tier; (c) an irreversible / one-way-door action is required (push, delete, publish, destructive migration); (d) a decision only the user can make is reached.
+  FALSIFIER: The cycle runner advances to a new backlog item without committing and clean-tree-gating the previous one, OR continues past a Complex-tier classification without surfacing to the user, OR proceeds past a one-way-door action without explicit user approval
+  TEST: CMD-005 (spec-only placeholder — runner-iteration test not yet implemented)
+
+- **Atomic commits**: Small, focused commits over large monolithic ones; each item commits independently
 - **Don't proceed past review** if peer review identifies blocking issues
 - **Stop and ask** when blocked or uncertain — don't guess
 - **issue tracker failures are non-blocking**: Complete work, note ticket key and status update needed
@@ -167,8 +172,8 @@ Tell the user the cycle is complete, summarize what was done, and suggest `/clea
 | **Backlog Source Abstraction** | All backlog-reading operations use identical Backlog Source Detection logic | issue tracker vs BACKLOG.md mode transparent and consistent |
 | **Graceful Degradation** | Handle missing files, missing tools, and network failures without crashing (issue tracker fails → log and continue; no PRs → skip step; empty backlog → clear message) | Commands remain operable in degraded environments |
 | **User Approval Gates** | Commands with side effects require explicit approval: Phase 2 triage via `AskUserQuestion`; session save presents diff before writing | Prevent unintended side effects |
-| **Idempotence** | Commands safe to run multiple times (backlog visibility is read-only; session save compares before writing; task lifecycle works one item at a time) | Recoverable from interruption |
-| **Atomic Scope** | Task lifecycle is scoped to ONE backlog item. Multiple items require multiple cycles. | Commits small and reviewable; PRs focused; rollback feasible; context manageable |
+| **Idempotence** | Commands safe to run multiple times (backlog visibility is read-only; session save compares before writing; each task-lifecycle iteration works on one item at a time) | Recoverable from interruption |
+| **Atomic Scope** | A single task-lifecycle iteration is scoped to ONE backlog item; the single-item task-lifecycle command runs exactly one iteration, while the cycle-runner command iterates the lifecycle over multiple items within one invocation, committing per item and stopping at a budget/safety gate. | Commits small and reviewable; PRs focused; rollback feasible; context manageable; multiple items no longer require multiple invocations |
 | **Symmetric Learning** | Learn phase (Phase 5) is mandatory for backlog-driven mode. Retrospectives, calibration entries, and action item updates close the feedback loop. | Operational observations inform future decisions rather than becoming write-and-forget records |
 
 ---
@@ -187,11 +192,17 @@ Instructional content for the agent to follow.
 
 Commands are **imperative instructions** defining protocols — step-by-step procedures with decision points, constraints, and fallback behaviors. The three seed commands below are described by PURPOSE; the generation prompt determines actual names.
 
-### Task Lifecycle Command
+### Task Lifecycle Command (single-item)
 
-**Purpose**: Execute the default composition (task lifecycle, Section 4) end-to-end — discover, triage, execute, deliver, learn.
+**Purpose**: Execute the default composition (task lifecycle, Section 4) end-to-end on exactly ONE backlog item — discover, triage, execute, deliver, learn. Returns to the user after the single item completes.
 
-**Invocation**: No arguments. Detects backlog source via Backlog Source Detection. Executes Phase 1 through Phase 5.
+**Invocation**: No arguments. Detects backlog source via Backlog Source Detection. Executes Phase 1 through Phase 5 once, on the highest-priority unblocked item.
+
+### Cycle Runner Command (multi-item)
+
+**Purpose**: Iterate the task lifecycle over the backlog within one invocation — repeatedly select the highest-priority unblocked item, run a full Phase 1 → Phase 5 pass (including the Phase 4 commit + verification gate), then re-enter Phase 1 on the next item. Each item gets its own atomic commit(s) and its own clean-tree gate before the runner advances.
+
+**Invocation**: No arguments. Loops until a budget/safety gate trips, then stops and reports per the cycle-runner invariant in Section 4 Constraints. Stop conditions: (a) token/context budget runs low; (b) the next item triages to Complex tier; (c) an irreversible / one-way-door action is required; (d) a user-only decision is reached.
 
 ### Backlog Visibility Command
 
@@ -291,4 +302,4 @@ tier: Simple|Moderate|Complex
 - [specific suggestions for OpenJunto profiles, commands, manager protocol file, etc.]
 ```
 
-**Scope**: Local development only. `{install-root}/dev/` is user-created, not managed by installer, not part of OpenJunto distribution. Enable per session: `export OJ_DEVMODE=1`. One file per cycle, used for iterating on the OpenJunto system itself.
+**Scope**: Local development only. `{install-root}/dev/` is user-created, not managed by installer, not part of OpenJunto distribution. Enable per session: `export OJ_DEVMODE=1`. One file per command invocation (the single-item task-lifecycle command produces one file per invocation = one file per item; the cycle-runner command produces one file per invocation summarizing all items processed in that run), used for iterating on the OpenJunto system itself.
