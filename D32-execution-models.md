@@ -305,7 +305,7 @@ These are **starting defaults** for the role when no function rule applies. Trea
 | **{tier-implementation}** | Software Engineer, Solutions Architect, DevOps Engineer, Test Engineer, Data Architect, Data Scientist, ML Engineer, Enterprise Architect, Business Analyst, Product Manager, Executive Leadership Coach |
 | **{tier-routine}** | Technical Writer (docs strategy) — escalate to **{tier-implementation}** when user-facing prose is the deliverable |
 
-### Effort (Out of Scope) [INVARIANT]
+### Effort (out of scope in the current architecture)
 
 Per-expert **effort** is not a controllable parameter under the current execution substrate: expert agents are spawned as the platform's general-purpose subagent type with profile content injected via the Onboard primitive, and that spawn surface exposes no per-invocation effort knob. Effort is therefore **session-level** (controlled by the user's session-wide effort setting); it cannot be varied per expert today. Per-expert effort tiering would require re-architecting experts as native, distinct subagent types — defer; do not fabricate per-expert effort control.
 
