@@ -295,9 +295,9 @@ The manager chooses the tier per spawn by the spawn's **function** (what the rol
 - **Phase-1 stakeholder analysts (output compressed to FINDING / TENSION per §5)** → **{tier-implementation}**; drop to **{tier-routine}** for bounded or lightweight lenses (e.g., docs-only review, mechanical conformance checks).
 - **Specialists engaged on a domain trigger** → **{tier-implementation}** by default; escalate to **{tier-reasoning}** when their domain is the **decisive risk** for the engagement (e.g., security on an auth/crypto change, reliability on an SLO-impacting change, data architect on a destructive migration).
 
-### Per-Role Default Tier (adjustable; reviewer-slot override always wins)
+### Per-Role Default Tier (adjustable; function rules always win)
 
-These are **starting defaults** for the role when no function rule applies. Treat them as adjustable per engagement — the function rules above take precedence whenever the role appears in the reviewer slot or as a Complex-tier lead.
+These are **starting defaults** for the role when no function rule applies. Treat them as adjustable per engagement — the function rules above always take precedence when any of them applies (reviewer-slot, Complex-tier lead, Moderate-tier lead, Phase-1 analyst, or domain-trigger specialist). The per-role default below fires only when no function rule matches the spawn.
 
 | Default Tier | Roles |
 |--------------|-------|
