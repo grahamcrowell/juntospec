@@ -171,6 +171,15 @@ primitives:
     role: "team-formation primitive — manager assembles a multi-expert team for parallel deliberation with a deputy coordinator"
     anchor: "canonical-convene"
     anchor_status: "pending"
+    # Axiom 8 graceful degradation: when the platform-bound Convene capability
+    # is unavailable (e.g., the platform's team-formation feature is gated off
+    # in an adopter environment), Complex-tier execution degrades to a
+    # Consult-fan-out coordinator pattern (deputy coordinator spawned via the
+    # Consult primitive, fanning out parallel stakeholder Consults with
+    # handback-only synthesis). Peer-messaging (Inform) is NOT used in the
+    # degraded path because Inform is gated by the same platform capability.
+    # User Checkpoint and synthesis semantics are preserved.
+    degrades_to: "Consult"
   - name: "Inform"
     role: "peer-messaging primitive — intra-team relay of findings and questions between agents during an active engagement"
     anchor: "canonical-inform"

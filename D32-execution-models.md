@@ -221,6 +221,8 @@ Coordinator is general-purpose agent managing detailed communication while manag
 
 **File conflicts**: Use git worktrees for overlapping file edits (isolated working directories, shared git history).
 
+**Fallback (Axiom 8 — graceful degradation)**: If the Convene primitive is unavailable in the host environment, Complex tier degrades to a parallel-Consult coordinator pattern: the manager spawns a single deputy coordinator via the Consult primitive, briefed with the full stakeholder plan; the deputy fans out the stakeholder analyses as parallel Consult invocations and synthesizes via the handback protocol only (the Inform primitive is NOT used, because it is gated by the same platform capability that gates Convene). The User Checkpoint, mandatory pre-mortem, and adversarial review steps remain unchanged. Probing the Convene capability and selecting the path is an implementation concern of the cycle-runner / task-lifecycle commands; the abstract execution model is the same — a coordinator coordinates parallel stakeholder work and the manager retains user-facing decisions. This pattern is conceptually the Moderate 3-phase pattern scaled to the Complex stakeholder set; it preserves Complex-tier quality gates while operating within the available primitive set.
+
 ---
 
 ## [IMMUTABLE] 3a. Cross-Tier Checkpoint Requirements

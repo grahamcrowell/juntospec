@@ -85,6 +85,8 @@ These primitives (Consult/Convene/Inform/Onboard) are the abstract spec vocabula
 | **Moderate** | Sequential phases: analysis -> impl -> review | Consult primitive spawns with full profiles | 6 gates |
 | **Complex** | Parallel coordination with team | Convene primitive + coordinator + teammates | 9 gates |
 
+> **Convene availability (Axiom 8)**: When the Convene primitive is unavailable in the host environment, Complex tier executes via a Consult-fan-out coordinator pattern instead of a Convene-formed team (a deputy coordinator spawned via Consult fans out parallel stakeholder Consults; handback-only synthesis; no Inform). This is an execution-substrate degradation, not a tier downshift — triage scoring, the mandatory User Checkpoint, the pre-mortem, and the adversarial review stay in force. See `D32-execution-models.md` §3 Fallback for the full pattern.
+
 ---
 
 ## [IMMUTABLE] 3. Stakeholder Signal Table [DERIVED MAPPING TABLE] [← Chain 6]
