@@ -134,6 +134,8 @@ Every full profile **MUST** contain these 16 sections in this order:
 - **[B] Architects**: Data Architect → data systems and pipelines; Solutions Architect → cross-system integration and API contracts; Enterprise Architect → org-wide standards and technology strategy
 - **[C] Engineers**: DevOps → CI/CD and infrastructure; ML Engineer → model lifecycle and serving; SRE → production reliability and SLOs; Software Engineer → code implementation and review
 
+**Default cognitive tier per role**: Each role above has a default model tier ({tier-routine} / {tier-implementation} / {tier-reasoning}) defined in `[model-selection-for-spawned-agents](D32-execution-models.md#immutable-6-model-selection-for-spawned-agents)`. The manager applies the function-first selection rules from that section when spawning — reviewer-slot and Complex-tier-lead spawns override the per-role default.
+
 ---
 
 ## [STRUCTURAL] 5. The Index (index.md)

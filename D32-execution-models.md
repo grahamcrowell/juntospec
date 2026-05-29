@@ -285,6 +285,30 @@ The table below abstracts over model tiers; the concrete model column is rendere
 
 When in doubt, use the more capable tier ({tier-routine} < {tier-implementation} < {tier-reasoning}).
 
+### Function-First Selection Rules [DERIVED] [← Chain 7]
+
+The manager chooses the tier per spawn by the spawn's **function** (what the role is doing in this engagement), with role defaults as a secondary anchor. The function rules below override the role-default table when they conflict — a role's default tier is the floor for routine engagements, not a ceiling on adversarial or high-risk ones.
+
+- **Adversarial reviewer slot (any role)** → **{tier-reasoning}**. The reviewer's output is forwarded verbatim and must break the work; it is the load-bearing critique surface and should run on the strongest tier regardless of the reviewer's default.
+- **Complex-tier lead implementer** → **{tier-reasoning}**. Complex-tier work is by definition ambiguous, cross-domain, or high-blast-radius; the lead carries the synthesis weight.
+- **Moderate-tier lead implementer** → **{tier-implementation}** by default; escalate to **{tier-reasoning}** when the implementation is high-risk (novel design, security-sensitive, irreversible migration, or the findings ledger contains an unresolved TENSION the lead must arbitrate).
+- **Phase-1 stakeholder analysts (output compressed to FINDING / TENSION per §5)** → **{tier-implementation}**; drop to **{tier-routine}** for bounded or lightweight lenses (e.g., docs-only review, mechanical conformance checks).
+- **Specialists engaged on a domain trigger** → **{tier-implementation}** by default; escalate to **{tier-reasoning}** when their domain is the **decisive risk** for the engagement (e.g., security on an auth/crypto change, reliability on an SLO-impacting change, data architect on a destructive migration).
+
+### Per-Role Default Tier (adjustable; reviewer-slot override always wins)
+
+These are **starting defaults** for the role when no function rule applies. Treat them as adjustable per engagement — the function rules above take precedence whenever the role appears in the reviewer slot or as a Complex-tier lead.
+
+| Default Tier | Roles |
+|--------------|-------|
+| **{tier-reasoning}** | Distinguished Engineer, Security Engineer, Site Reliability Engineer, Engineering Consultant |
+| **{tier-implementation}** | Software Engineer, Solutions Architect, DevOps Engineer, Test Engineer, Data Architect, Data Scientist, ML Engineer, Enterprise Architect, Business Analyst, Product Manager, Executive Leadership Coach |
+| **{tier-routine}** | Technical Writer (docs strategy) — escalate to **{tier-implementation}** when user-facing prose is the deliverable |
+
+### Effort (Out of Scope) [INVARIANT]
+
+Per-expert **effort** is not a controllable parameter under the current execution substrate: expert agents are spawned as the platform's general-purpose subagent type with profile content injected via the Onboard primitive, and that spawn surface exposes no per-invocation effort knob. Effort is therefore **session-level** (controlled by the user's session-wide effort setting); it cannot be varied per expert today. Per-expert effort tiering would require re-architecting experts as native, distinct subagent types — defer; do not fabricate per-expert effort control.
+
 ---
 
 ## [IMMUTABLE] 7. Context Inheritance
