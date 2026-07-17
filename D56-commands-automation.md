@@ -369,6 +369,8 @@ Graduation branches on the backlog source ([Backlog Source Detection](#backlog-s
 
 Graduation SHOULD warn (not block) for any task whose size estimate exceeds one review-sized unit of work (~1.5–2 dev-days), recommending decomposition into one-PR-sized tasks.
 
+Graduation (or plan authoring, before graduation) SHOULD warn (not block) when a task's verification command appears to assert nothing - a command with no check-bearing invocation, only an always-success form - recommending a real executable check instead. Such a command satisfies the Deliver verification contract's requirement that a command be present and be executed, without proving the task is actually done, so the author should be prompted to strengthen it.
+
 ---
 
 ## Command Evolution
