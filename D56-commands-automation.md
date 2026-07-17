@@ -107,6 +107,10 @@ Execute per the selected execution model [execution-models](D32-execution-models
 #### Test
 Validate with tests (balanced pyramid: unit > integration > e2e). Run existing tests to confirm no regressions.
 
+[INVARIANT] When the selected work item's acceptance criteria carry a verification command (produced by the § Backlog Graduation field mapping, or hand-authored), the Deliver capability MUST execute that command verbatim, observe its exit status, and report the command invoked together with its actual output as the evidence of completion - never an unsubstantiated "tests pass" assertion. The item's verification command runs first (the item-specific definition-of-done); the balanced-suite / no-regression check runs after; both appear in the evidence. A non-zero exit status blocks progression to Commit; the agent stops and surfaces to the user rather than overriding or rationalizing the failure. When the item carries no verification command, Deliver MUST fall back to the balanced-suite / no-regression check and state explicitly that no item-specific verification command was present.
+  FALSIFIER: A work item whose acceptance carries a verification command is committed without that command having been executed in the Deliver pass; OR the command exits non-zero yet Deliver proceeds to Commit; OR Deliver reports completion as "tested"/"verified" without naming the command and quoting its actual result; OR an item lacking a verification command is delivered without the fallback being stated; OR a verification-command-bearing item's evidence omits the balanced-suite / no-regression result.
+  TEST: CMD-006
+
 #### Commit
 Create atomic commits with clear messages. **No "Co-Authored-By" lines or AI attribution.**
 
