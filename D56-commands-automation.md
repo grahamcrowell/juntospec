@@ -264,6 +264,99 @@ Commands are **imperative instructions** defining protocols — step-by-step pro
 - **Graceful degradation** — skip any step whose file/resource is absent; note the skip
 - **No network calls beyond git/gh** — only git, gh, and file reads
 
+### Spec Authoring Command (front-half)
+
+**Purpose**: Author the front-half specification artifacts (requirements → design → implementation-plan) for a Moderate/Complex subject, scaling ceremony to tier, then **graduate** the plan's tasks into the backlog so the task lifecycle can execute them. Requirements/design/plan modes produce durable, self-contained documents; a `refresh` mode re-aligns downstream artifacts (and re-graduates) when an upstream input changes.
+
+**Invocation**: One argument selecting the target artifact/mode: `reqs | design | plan | refresh`. The `plan` mode ends by graduating tasks per the Backlog Graduation section below; `refresh` re-runs graduation idempotently.
+
+---
+
+## Backlog Graduation — front-half → task-lifecycle bridge
+
+The front-half authoring flow (requirements → design → implementation-plan) produces a durable implementation plan whose tasks are plan-local (`T-<subject>-NN`). **Graduation** is the operation that converts those plan tasks into backlog items the task lifecycle [default composition](#default-composition--the-task-lifecycle) can select and execute. It is a link-and-sync operation, not a copy: the two ID spaces reference each other and neither is carried into the other as data.
+
+### Identity and back-reference
+
+| ID space | Form | Location | Owner |
+|----------|------|----------|-------|
+| Plan task | `T-<subject>-NN` | implementation plan doc | front-half plan mode |
+| Backlog item | `<PREFIX>-NN` (file-backed) or issue-tracker key | backlog source | task lifecycle |
+
+Each graduated backlog item MUST carry a `Source:` back-reference to its originating `<plan-doc>#T-<subject>-NN`. After graduation, the plan task MUST carry a forward-reference to its backlog id. This bidirectional link is the graduation key (idempotent re-graduation) and the reconciliation channel (backlog status read back into the plan).
+
+[INVARIANT] Every graduated backlog item MUST record a `Source:` back-reference resolving to exactly one plan task, and no two live items may share the same `Source:`.
+  FALSIFIER: A graduated item has no `Source:`, or two live items cite the same plan task.
+
+### Field mapping
+
+| Plan task field | Backlog item field | Rule |
+|-----------------|--------------------|------|
+| title | title | verbatim |
+| `blockedBy` deps | `Blocked By` | each dep translated to the graduated id of that task |
+| critical-path position (+ explicit priority) | priority | derivation rule below |
+| per-task verification command | acceptance / description | verbatim — the executable definition-of-done |
+| size estimate | description note | soft decomposition warning below |
+| `T-<subject>-NN` | `Source:` | the join key |
+
+[INVARIANT] A plan task carrying a verification command MUST graduate that command verbatim into its backlog item's acceptance criteria.
+  FALSIFIER: A graduated item's acceptance omits or paraphrases the plan task's verification command.
+
+### Priority derivation
+
+Priority is derived, not free-typed, so graduation is reproducible:
+
+1. **Default — critical path.** Tasks on the plan's critical path receive the higher priority band; off-path tasks one band lower; mandatory-escalation tasks (security, one-way-door) the top band.
+2. **Override / tiebreak — explicit priority.** A plan task MAY carry an explicit priority field. When present it overrides the critical-path default; when two tasks derive the same band, explicit priority breaks the tie. Absent, critical-path position alone decides.
+
+### Dependency translation
+
+Graduation MUST occur in topological order so each dependency's backlog id exists before the task that references it, and MUST translate every intra-plan `blockedBy` into a backlog `Blocked By` link.
+
+[INVARIANT] For every plan task graduated, each of its `blockedBy` predecessors MUST already be graduated and referenced by backlog id in the dependent item's `Blocked By`.
+  FALSIFIER: A graduated item omits a `Blocked By` for a plan predecessor, OR references a predecessor that has not been graduated. (Consequence: the cycle runner could select a task ahead of its plan predecessor, violating the plan's critical path.)
+
+### Idempotent upsert (refresh)
+
+Graduation is a sync keyed on `Source:`, safe to re-run when the plan changes:
+
+- **New** plan task (no matching `Source:`) → create item.
+- **Changed** task whose item is still `todo`/open → update in place.
+- **Changed** task whose item is already in progress or done → MUST NOT overwrite; surface as a user-only decision (re-open is the user's call).
+- **Removed** task → mark its item cancelled; never delete (history preserved).
+
+[INVARIANT] Graduation MUST NOT mutate a backlog item that is in progress or done except to append a note; re-opening is a user decision.
+  FALSIFIER: A re-graduation silently rewrites the scope or status of an in-progress/done item.
+
+### Atomicity
+
+Graduation is transactional per plan: the approved create/update/cancel set is applied in full or not at all. Preparation (id resolution, dependency translation, item construction, and validation) completes with zero writes; only after the whole set is built and approved does the commit phase write. A failure during commit MUST leave the backlog source in its pre-graduation state.
+
+[INVARIANT] Graduation of a plan is all-or-none: either every item in the approved create/update/cancel set is written, or none is. A failure at any point leaves the backlog source and the sidecar map byte-identical to their pre-graduation state.
+  FALSIFIER: A graduation errors or aborts with some but not all of its write set applied — e.g. three of five issues created before a failure, with the three left in the tracker.
+
+[OBSERVABLE] Validation runs in the prepare phase, before the confirmation gate. If any task cannot be fully built — unresolved predecessor, id collision, or a required field absent — the whole graduation aborts in prepare with nothing written and nothing presented for approval.
+  FALSIFIER: A malformed or unresolvable task is written, or is presented for approval as though graduable.
+
+Because an issue tracker has no native transaction, all-or-none is emulated by compensation: the commit phase tracks every id it creates this invocation and, on any mid-commit failure, undoes them (close or delete, per tracker capability) and discards the staged sidecar entries before reporting. The file-backed backlog achieves atomicity by constructing the full updated document in memory and writing it in a single replace.
+
+### Backlog source branch and external-id hygiene
+
+Graduation branches on the backlog source ([Backlog Source Detection](#backlog-source-detection)):
+
+- **File-backed backlog** → upsert markdown items; the `<PREFIX>-NN` id lives in the file.
+- **Issue tracker** → create one issue per task; the tracker key is the item id. Because tracker content is externally visible, the plan-local `T-<subject>-NN` and any local backlog id MUST NOT appear in externally visible tracker fields. The `T ↔ key` correspondence is held in a local sidecar map beside the plan (`<plan-doc>.map`).
+
+[INVARIANT] In issue-tracker mode, no plan-local task id or local backlog id appears in any externally visible tracker field; the correspondence is held only in the local sidecar map.
+  FALSIFIER: A created issue's title/body/labels contain a `T-<subject>-NN` or local `<PREFIX>-NN` id.
+
+### Confirmation and decomposition
+
+[OBSERVABLE] Graduation MUST present the proposed create/update/cancel set for explicit user approval before writing to the backlog source; nothing is written on rejection.
+  FALSIFIER: Graduation writes backlog items without a prior approval gate.
+
+Graduation SHOULD warn (not block) for any task whose size estimate exceeds one review-sized unit of work (~1.5–2 dev-days), recommending decomposition into one-PR-sized tasks.
+
 ---
 
 ## Command Evolution

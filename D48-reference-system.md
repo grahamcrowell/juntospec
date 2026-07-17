@@ -66,8 +66,12 @@ The manager protocol file must stay lean (~10KB). Detailed guidance lives in ref
 | **Retrospective** | `retrospective.md` | Complex tier post-engagement (required) | Engagement Summary, What Went Well, What Could Be Improved, Questions & Puzzles, Action Items (owner/target/priority), Metrics Review, Profile/Process Updates |
 | **Session State** | `session-state.md` | `.claude/state/session.md` volatile layer | Updated date/session, In-Flight PRs, Local Workspace State, Session Carry-Over (retention policy), Next Actions |
 | **Communications Playbook** | `communications-playbook.md` | `.claude/COMMS.md` signal gate + channel routing | Signal Gate (event table), Hierarchy Rule, Channel Routing, Drafts queue, Log |
+| **Requirements Specification** | `requirements.md` | Front-half authoring (spec `reqs` mode); Complex-tier subjects, interview-first | Summary, Functional Requirements (`FR-N`), Non-Functional Requirements (`NFR-N`), Out of Scope, Open Questions, End-to-End Verification, Metadata |
+| **Design Document** | `design.md` | Front-half authoring (spec `design` mode); Moderate/Complex, architecture from requirements | Summary, Requirements Satisfied (FR/NFR trace), Architecture (files/interfaces + diagram), Key Decisions (+ alternatives rejected), Out of Scope, Open Questions, Verification Approach |
+| **Implementation Plan** | `implementation-plan.md` | Front-half authoring (spec `plan` mode); Simple and above, decompose design into tasks then graduate | Summary, Tasks (`T-<subject>-NN`: blockedBy, verify command, size, optional priority), Critical Path, Risk Register, Live-State Reconciliation, Graduation Record |
 
 <!-- [IMMUTABLE] template file names and "When to Use" column: exact — referenced by name in manager-protocol-file commands and workflow stages -->
+<!-- The three front-half templates (requirements/design/implementation-plan) are consumed by the spec skill (D56 § Spec Authoring Command); implementation-plan.md carries the T-<subject>-NN task shape Backlog Graduation reads. -->
 
 Templates are starting points — copy to `.claude/` and customize. Commands reference templates by name.
 
