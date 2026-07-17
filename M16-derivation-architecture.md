@@ -150,6 +150,7 @@ platform:
       parameters: ["team_name", "description"]
     # ... (25 tools total — see platform-defaults.yaml for complete manifest)
   models:
+    # Illustrative Layer-0 snapshot (example values, not the live roster - see platform-defaults.yaml).
     - id: "haiku"
       api_id: "claude-haiku-4-5-20251001"
       tier: "routine"
