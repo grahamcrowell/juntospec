@@ -198,7 +198,7 @@ primitives:
     anchor: "canonical-install-root"
     anchor_status: "pending"
   - name: "model-tier"
-    role: "cognitive-demand abstraction primitive — derivation chains and protocol prose refer to model capability classes (routine, implementation, reasoning) with cost ratios; concrete model-id binding (e.g., haiku/sonnet/opus) lives in platform-defaults.yaml"
+    role: "cognitive-demand abstraction primitive — derivation chains and protocol prose refer to model capability classes (routine, implementation, reasoning) with cost ratios; concrete model-id binding (e.g., sonnet/opus[1m]/fable) lives in platform-defaults.yaml"
     anchor: "canonical-model-tier"
     anchor_status: "pending"
   - name: "operational-namespace"
@@ -474,7 +474,7 @@ keep_list:
     signed_off_at: "2026-05-06"
     note: "YAML literal `name: \"TeamCreate\"` in capability-schema example — platform identifier, not spec vocabulary. Hash recomputed BL-027 mechanical pass."
   - file: "M16-derivation-architecture.md"
-    line: 172
+    line: 178
     term: "SubagentStart"
     match_kind: "literal"
     context_hash: "c10c0834"
@@ -483,7 +483,7 @@ keep_list:
     signed_off_at: "2026-05-06"
     note: "YAML comment binding SubagentStart hook point to Onboard primitive. Hash recomputed BL-027 mechanical pass."
   - file: "M16-derivation-architecture.md"
-    line: 173
+    line: 179
     term: "SubagentStart"
     match_kind: "literal"
     context_hash: "1437d548"

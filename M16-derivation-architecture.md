@@ -155,19 +155,25 @@ platform:
       tier: "routine"
       context_window: 200000
       max_output_tokens: 64000
-      cost_ratio: 1.0  # baseline
+      cost_ratio: 0.2
     - id: "sonnet"
-      api_id: "claude-sonnet-4-6"
+      api_id: "claude-sonnet-5"
+      tier: "routine"
+      context_window: 1000000
+      max_output_tokens: 128000
+      cost_ratio: 0.6
+    - id: "opus[1m]"
+      api_id: "claude-opus-4-8"
       tier: "implementation"
       context_window: 1000000
-      max_output_tokens: 64000
-      cost_ratio: 3.0
-    - id: "opus"
-      api_id: "claude-opus-4-6"
+      max_output_tokens: 128000
+      cost_ratio: 1.0  # baseline
+    - id: "fable"
+      api_id: "claude-fable-5"
       tier: "reasoning"
       context_window: 1000000   # confirmed: system prompt states "1M context"
       max_output_tokens: 128000
-      cost_ratio: 5.0
+      cost_ratio: 2.0
   hooks:
     # Platform name: "SubagentStart" | Spec primitive: Onboard (spawn-time profile-injection primitive)
     - point: "SubagentStart"
