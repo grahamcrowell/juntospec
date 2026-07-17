@@ -92,6 +92,14 @@ Perform two-dimensional triage per [triage-criteria](D24-triage-engine.md#triage
 
 ### Phase 3 — Plan & Execute
 
+#### Reconcile Live State
+
+Before planning stakeholder engagement, determine whether the selected work item cites live external state: a back-reference to an originating plan task, references to external artifacts with an independent lifecycle (reviewable changes, prior work products, external resources), or a dependency on another item. When it does, re-verify each cited reference against current reality and compare it against what the item asserts. When it cites nothing external, state explicitly that reconciliation is a no-op.
+
+[OBSERVABLE] When the selected work item cites external live state, the Execute phase MUST re-verify each cited reference against current reality before stakeholder engagement planning begins, and MUST surface any discrepancy to the user rather than proceeding on the stale premise. When the item cites no external state, the phase MUST state explicitly that reconciliation was a no-op rather than omitting the step silently.
+  FALSIFIER: An item citing external live state proceeds to stakeholder engagement planning without every cited reference having been re-verified; OR a discrepancy is found but execution proceeds without surfacing it to the user; OR an item citing nothing external proceeds with no explicit no-op statement.
+  TEST: CMD-007
+
 #### Plan Stakeholder Engagement
 Before spawning any agents, declare the engagement plan per [execution-models](D32-execution-models.md#execution-models):
 1. Identify stakeholders from Phase 2B
