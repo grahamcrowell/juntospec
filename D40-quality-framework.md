@@ -319,6 +319,7 @@ Track these to validate process effectiveness:
 | Anti-Pattern | Instead | Why Harmful |
 |---|---|---|
 | **Unsubstantiated "No Concerns"**: claiming no issues without adversarial analysis | State "tested [failure modes], found no concerns because [reasoning]" | "Looks good" misses real problems; reviewer didn't actively probe |
+| **Unsubstantiated "Tested"/"Verified"**: claiming completion without running the item's verification command | Execute the item's verification command and report the command plus its actual output as evidence | An asserted "tests pass" hides an unrun or failing check; evidence over assertion |
 | **Manufactured Adversarial Findings**: inventing problems when genuine analysis found none | Use "None — resistant because..." path honestly | Fake problems dilute real concerns; wastes time on non-issues |
 | **Skipping Triage**: applying Complex process to Simple work or vice versa | Always triage first (see D24-triage-engine.md) | Wrong process weight wastes time or misses critical analysis |
 | **Endless Revision**: perfecting instead of delivering | Use circuit breaker — after 3 cycles, escalate with options | Pursuit of perfection prevents shipping |
