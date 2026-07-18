@@ -40,6 +40,30 @@ issue-tracker-check succeeds + project non-null?  -> issue tracker mode with KEY
 
 ---
 
+## Backlog Item Schema and Single-Source Discipline
+
+The file-backed backlog is not a flat task list; it is the user's own task graph -- a thin layer of sequencing, blocking rationale, acceptance criteria, and cross-item links over the systems that own external state (the issue tracker, code host, external docs). Discover parses this shape, Deliver and Graduation write it, the session-state command audits it, and the backlog-compaction command rewrites it; the shape MUST be identical across all of them so they interoperate. The canonical starting form is the `backlog` template (`{install-root}/templates/backlog.md`).
+
+### Shape
+
+- **Workstream grouping**: open items group into workstreams; each workstream states its goal, sequencing, and current bottleneck. A Workstreams index table lists workstream -> goal -> current bottleneck -> member item ids. The index's item column is a pointer list, never a status cache.
+- **Per open item**: `Status` (the single authoritative state), `Urgency` (controlled vocabulary: `currently-blocking` | `eventual-blocker` | `aspirational` | `dated <YYYY-MM-DD>`), `AC` (acceptance criteria / definition of done), `Links` (inter-item deps + external artifacts as references), optional `Source:` (graduation back-reference), optional `Context`.
+- **Closed items** collapse to a one-line marker; full history lives in git and in the closing commit/PR.
+
+### Single-source discipline
+
+[INVARIANT] A fact about an external artifact's state -- a PR being open/merged/closed, a branch existing, an issue-tracker ticket's status -- MUST be asserted in exactly one place in the file-backed backlog: the owning item's `Status` line. Every other location that references the same artifact (the Workstreams index, an open-PR register, a plan-task -> item map) MUST reference the owning item by id rather than restate the artifact's state.
+  FALSIFIER: Two locations in the backlog independently assert the state of the same PR/branch/ticket (e.g. a summary table's status column restates a status also asserted on the item's `Status` line), such that one can be corrected while the other silently goes stale.
+
+[OBSERVABLE] Any `Status` assertion about external state MUST carry a `verified <YYYY-MM-DD>` stamp recording when that state was last checked against reality. An un-dated external-state assertion is treated as unverified by construction.
+  FALSIFIER: A `Status` line asserts a PR/branch/ticket state with no `verified <date>` stamp, or the stamp is not updated when the assertion is re-confirmed or changed.
+
+**Rationale**: the same fact stored twice with nothing forcing the copies to agree is the mechanism by which a backlog goes stale even under careful audits -- one edit corrects one copy and the other rots. Point, do not duplicate. Narrative (implementation logs, commit SHAs, design rationale) belongs in commits, PR descriptions, and session state, not in the item -- the backlog answers only "what is the state" and "what is the blocker".
+
+**Issue-tracker mode**: when a project runs in issue-tracker mode, the tracker owns work-item status; the local backlog layer holds only what the tracker does not (the user's sequencing, blocking rationale, and cross-item links). The single-source rule still binds: local items reference tracker keys, they do not cache tracker status.
+
+---
+
 ## Activation Modes
 
 Capabilities compose into three activation modes depending on context.
@@ -130,9 +154,13 @@ Create atomic commits with clear messages. **No "Co-Authored-By" lines or AI att
   - Add completion comment: `oj-helper issue-tracker-comment KEY --body "Completed: [summary]"`
   - Create new tickets for discovered work: `oj-helper issue-tracker-create --summary "..." --description "..."`
 - **BACKLOG.md mode**:
-  - Mark completed items
+  - Mark completed items; stamp any `Status` line that asserts external state with `verified <today>` (§ Backlog Item Schema)
   - Add discovered work
+  - **Cross-reference refresh**: whenever this item's change altered the state of a PR, branch, or ticket that the backlog references, grep the backlog (and `session.md` if present) for every other mention of that token and refresh EVERY hit in the same commit -- not just the item the work started from. This is the write-side enforcement of the single-source discipline: one changed fact, every reference updated atomically.
   - Update `.claude/BACKLOG.md`
+
+[OBSERVABLE] When a delivered item changes the state of a referenced PR/branch/ticket, the Deliver capability MUST refresh every occurrence of that token across the backlog (and session state) within the item's commit, leaving no stale duplicate of the changed fact.
+  FALSIFIER: After delivery, one location's status word for a PR/branch/ticket has been updated while another location referencing the same token still asserts the pre-change state.
 
 ### Phase 5 — Learn
 
@@ -256,7 +284,9 @@ Commands are **imperative instructions** defining protocols — step-by-step pro
 
 **Step 3 — Check In-Flight PRs**: If `state/session.md` lists PRs, run `gh pr view <number> --json state,statusCheckRollup,mergeable` for each and update status. Skip if none listed.
 
-**Step 4 — Verify Backlog Consistency**: Read `.claude/BACKLOG.md`. Check: header count matches actual count; no "Blocked By" items reference completed items. Note inconsistencies.
+**Step 4 — Verify Backlog Consistency**: Read `.claude/BACKLOG.md`. Check: header count matches actual count; no "Blocked By" items reference completed items. **Self-consistency scan (single-source drift)**: extract every `#<N>` / `<PREFIX>-<N>` / ticket-key token that appears more than once across the backlog (and `session.md`), and diff the surrounding status word (`OPEN`/`MERGED`/`CLOSED`/`DONE`/etc.) across its occurrences. Any divergence is candidate drift and MUST be flagged -- this is a pure file-internal check requiring no live `gh` / issue-tracker calls, and it is the cheap catch for the duplication the § Backlog Item Schema single-source discipline is meant to prevent. Note all inconsistencies.
+
+**Step 4b — Reconcile External State (cadence-gated, directional)**: The backlog is downstream of the systems that own external state; without a periodic pull, a ticket someone else closed or a PR merged outside a session sits unreflected. On a cadence (e.g. items whose `verified <date>` is older than N days, or when a save is about to touch a decision on such an item), reconcile inbound: for in-flight PRs reuse Step 3's `gh pr view` results; for issue-tracker items run `oj-helper issue-tracker-list` (issue-tracker mode) and compare live status against what each referencing item asserts. This uses only the `issue-tracker-*` abstraction and `gh` -- it is platform-neutral (no assumption of a specific tracker). Report drift as a flagged inconsistency for the user to confirm; do NOT auto-rewrite item scope or status from a tracker transition -- re-opening or re-scoping is a user decision. If no external references are stale enough to re-poll, state that reconciliation was a no-op.
 
 **Step 5 — Check for Unprocessed Input**: Look for ad-hoc files in repo root (`tasks.md`, `notes.md`, `TODO.md`). Flag if found.
 
@@ -275,6 +305,44 @@ Commands are **imperative instructions** defining protocols — step-by-step pro
 - **Non-destructive** — show what will change; never delete content without presenting
 - **Graceful degradation** — skip any step whose file/resource is absent; note the skip
 - **No network calls beyond git/gh** — only git, gh, and file reads
+
+### Backlog Compaction Command
+
+**Purpose**: Size-triggered backlog hygiene. Keep the file-backed backlog small enough that a single read holds it in view, so drift stays catchable by routine edits rather than requiring a dedicated audit. Pins the current file to a retrievable git snapshot, then rewrites active items into the compact § Backlog Item Schema shape, relocating implementation narrative to where it already lives (commits, PR descriptions, session state). All changes presented for approval before writing.
+
+**Invocation**: No arguments. Runs against the resolved backlog path (`oj-helper resolve-path backlog`).
+
+#### Protocol
+
+**Step 1 — Measure and gate**: Read the resolved backlog. Trigger compaction when the file exceeds roughly 500-600 lines, OR a single read needs more than one page to load it. Below the threshold, report the size and stop (do not compact a small file) unless the user forces a run. In issue-tracker mode there is no large local file to compact — report and stop.
+
+**Step 2 — Pin (non-destructive, before any rewrite)**: Preserve the exact current content via `git hash-object -w` (or, for a clean tracked file, record the committed blob/commit SHA). Capture the pin reference for the rewritten header's history line so the verbose prior content stays one command away.
+
+**Step 3 — Rewrite active items compact**: Rewrite in memory against the § Backlog Item Schema and `{install-root}/templates/backlog.md`: preserve item ids exactly (never renumber) and workstream structure; keep only status + blocker per open item (`Status` with `verified <date>`, `Urgency`, `AC`, `Links`, `Context` only when load-bearing); move narrative out to its existing home (promote and link it first if it lives nowhere else); collapse closed items to one-line markers; update the header history line to the Step 2 pin.
+
+**Step 4 — Self-consistency scan**: Run the same duplicate-token status-divergence scan the session-state command runs (§ Session State Command Step 4), so the rewrite does not carry a stale duplicate forward.
+
+**Step 5 — Present and apply**: Present a diff-style summary (line count before/after, pin reference, items compacted, narrative relocated + where, drift found). Apply only after approval, writing atomically (single-replace: temp file, then move).
+
+#### Constraints
+
+- **Approval required** — never auto-write; present the full diff first
+- **Non-destructive** — pin to a retrievable git blob BEFORE rewriting; never drop content without preserving it in the pin or relocating load-bearing substance to a linked home
+- **Preserve ids exactly** — never renumber; ids are load-bearing cross-reference keys
+- **Single-sourced output** — the rewrite obeys the § Backlog Item Schema single-source rule
+- **Atomic write** — single-replace so a failure leaves the original untouched
+
+### Workstream Scaffolding Command
+
+**Purpose**: Scaffold an isolated parallel execution thread so multiple task-lifecycle / cycle-runner runs can proceed concurrently against one workspace without collision. Each workstream gets its own isolated working copy of a target repo and its own per-workstream manager-protocol overlay (enforcing a tagging discipline), while SHARING the workspace's canonical backlog, session state, and artifacts with every other concurrent workstream. The workstream is thus both an execution surface and a first-class grouping in the shared backlog — the `WS-<X>` blocks of the § Backlog Item Schema: a parallel thread drains the items of its declared workstream, keeping concurrent work visible and single-sourced.
+
+**Invocation**: A workstream identifier plus the target repo (optionally an explicit branch and workspace root). Platform-neutral; the generation prompt determines the concrete isolation mechanism (e.g. a version-control worktree) and the state-sharing mechanism (e.g. symlinks to the canonical state files).
+
+#### Constraints
+
+- **Shares canonical state, isolates execution** — the backlog, session state, and artifacts are the SAME files across all workstreams; only the working copy and the per-workstream protocol overlay are isolated. Concurrent writes to the shared backlog are disambiguated by a per-workstream tag.
+- **Does not mutate shared state** — scaffolding sets up the thread; it MUST NOT edit the shared backlog or session state. If the target workstream has no declared home in the backlog (a `WS-<X>` block), surface that to the user to add per § Backlog Item Schema rather than writing it.
+- **Idempotent** — re-scaffolding an existing workstream yields the same end state; pre-existing real state files are preserved (backed up) before being linked.
 
 ### Spec Authoring Command (front-half)
 
@@ -313,6 +381,8 @@ Each graduated backlog item MUST carry a `Source:` back-reference to its origina
 
 [INVARIANT] A plan task carrying a verification command MUST graduate that command verbatim into its backlog item's acceptance criteria.
   FALSIFIER: A graduated item's acceptance omits or paraphrases the plan task's verification command.
+
+Graduated items are written in the § Backlog Item Schema shape: the verification command populates `AC`; `Blocked By`/related deps and any cited external artifact populate `Links` as references (never as a restated status); the plan back-reference populates `Source:`. Any `Status` the item is created with that asserts external state carries a `verified <date>` stamp per the single-source discipline. Graduation MUST NOT introduce a second copy of an external-state fact -- it links to the owning item.
 
 ### Priority derivation
 

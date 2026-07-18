@@ -69,8 +69,10 @@ The manager protocol file must stay lean (~10KB). Detailed guidance lives in ref
 | **Requirements Specification** | `requirements.md` | Front-half authoring (spec `reqs` mode); Complex-tier subjects, interview-first | Summary, Functional Requirements (`FR-N`), Non-Functional Requirements (`NFR-N`), Out of Scope, Open Questions, End-to-End Verification, Metadata |
 | **Design Document** | `design.md` | Front-half authoring (spec `design` mode); Moderate/Complex, architecture from requirements | Summary, Requirements Satisfied (FR/NFR trace), Architecture (files/interfaces + diagram), Key Decisions (+ alternatives rejected), Out of Scope, Open Questions, Verification Approach |
 | **Implementation Plan** | `implementation-plan.md` | Front-half authoring (spec `plan` mode); Simple and above, decompose design into tasks then graduate | Summary, Tasks (`T-<subject>-NN`: blockedBy, verify command, size, optional priority), Critical Path, Risk Register, Live-State Reconciliation, Graduation Record |
+| **Backlog** | `backlog.md` | Seed shape for a project's `.claude/BACKLOG.md` (file-backed mode); the canonical single-sourced, workstream-first item schema | Workstreams index (goal/bottleneck/sequencing), per-item `Status` (with `verified <date>`) / `Urgency` / `AC` / `Links` / optional `Source`/`Context`, single-source discipline note, optional Open PR Register, Completed markers |
 
 <!-- [IMMUTABLE] template file names and "When to Use" column: exact — referenced by name in manager-protocol-file commands and workflow stages -->
+<!-- The backlog template encodes D56 § Backlog Item Schema and Single-Source Discipline; the spec skill (graduation), cycle/run-task (Deliver), save-session (audit), and backlog-compact (rewrite) all read/write this shape. -->
 <!-- The three front-half templates (requirements/design/implementation-plan) are consumed by the spec skill (D56 § Spec Authoring Command); implementation-plan.md carries the T-<subject>-NN task shape Backlog Graduation reads. -->
 
 Templates are starting points — copy to `.claude/` and customize. Commands reference templates by name.
