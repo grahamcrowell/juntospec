@@ -143,7 +143,7 @@ TYPE SignalMapping {
 |---|---|
 | System architecture | Architecture, Security |
 | Security review | Security, Architecture |
-| Data pipeline design | Data, Operations |
+| Data pipeline design | Data, Operations, Reliability |
 | New feature / implementation | Business, Implementation, Quality |
 | ML/AI implementation | ML, Analytics, Security |
 | Performance / reliability | Operations, Reliability, Data |

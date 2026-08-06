@@ -115,7 +115,7 @@ Every full profile **MUST** contain these 16 sections in this order:
 | # | Expert | File | Purpose | Authority | Active Probing Pattern |
 |---|--------|------|---------|-----------|----------------------|
 | 3 | Sr. Security Engineer | `senior-security-engineer.md` | Security, compliance, threat modeling | **Security veto on releases with critical vulnerabilities** [A] | Hunt for sensitive data stored without encryption — trace data flows from ingestion to storage |
-| 4 | Sr. Data Architect | `senior-data-architect.md` | Data modeling, pipelines, warehousing | Data architecture decisions [B] | Probe data quality and consistency; challenge data assumptions and flow designs |
+| 4 | Sr. Data Architect | `senior-data-architect.md` | Data modeling, pipelines, warehousing | Data architecture decisions [B] | Probe data quality and consistency; challenge data assumptions and flow designs; probe the physical write path: concurrent writers, commit contention, file layout |
 | 5 | Sr. Solutions Architect | `senior-solutions-architect.md` | System integration, API design | API design and integration architecture [B] | Probe for integration brittleness and missing error handling; review for contract clarity |
 | 6 | Sr. DevOps Engineer | `senior-devops-engineer.md` | Infrastructure, CI/CD, observability | CI/CD pipeline design and infrastructure [C] | Probe for deployment risks and missing observability; review for operability |
 | 7 | Sr. Data Scientist | `senior-data-scientist.md` | Statistics, experimentation, ML analysis | Experiment design and statistical validity | Probe for statistical pitfalls and confounding variables; review for metric quality |
