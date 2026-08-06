@@ -285,6 +285,12 @@ The table below abstracts over model tiers; the concrete model column is rendere
 
 When in doubt, use the more capable tier ({tier-routine} < {tier-implementation} < {tier-reasoning}).
 
+### Minimum-Model Floor [DERIVED] [← Chain 7]
+
+A configurable **minimum-model floor** sets the lowest tier any spawn may run on. The floor is an operator policy; its concrete value binds in [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) `platform.model_policy.min_model_tier` (a tier name — {tier-routine}, {tier-implementation}, or {tier-reasoning}), not in this spec.
+
+The floor is applied as the **final step** of tier selection, after the function-first rules and per-role defaults below have resolved a tier: a resolved tier below the floor is raised to the floor; a resolved tier at or above it is unchanged. The floor is a lower bound only — it never lowers a selection, so every escalation (adversarial reviewer slot, Complex-tier lead, domain-decisive-risk specialist) still stands. A floor of {tier-routine} is the identity case (no spawn is bumped; selection is exactly the rules below); raising the floor trades token cost for a uniform capability guarantee, bounded above by {tier-reasoning} (every spawn on the reasoning tier). *Design intent (Axiom 4 — Token Efficiency, inverted): the floor lets an operator buy a capability guarantee with tokens when routine-tier accuracy is not trusted for the engagement.*
+
 ### Function-First Selection Rules [DERIVED] [← Chain 7]
 
 The manager chooses the tier per spawn by the spawn's **function** (what the role is doing in this engagement), with role defaults as a secondary anchor. The function rules below override the role-default table when they conflict — a role's default tier is the floor for routine engagements, not a ceiling on adversarial or high-risk ones.

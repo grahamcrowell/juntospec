@@ -175,6 +175,12 @@ platform:
       context_window: 1000000   # confirmed: system prompt states "1M context"
       max_output_tokens: 128000
       cost_ratio: 2.0
+  model_policy:
+    # Operator-tunable model-selection policy (not observable via introspection; filled from defaults).
+    # min_model_tier: minimum-model floor — the lowest tier any spawn may run on.
+    # A resolved tier below the floor is raised to it; the floor never lowers a selection.
+    # Value is a tier name (routine | implementation | reasoning); default "routine" (no floor).
+    min_model_tier: "routine"
   hooks:
     # Platform name: "SubagentStart" | Spec primitive: Onboard (spawn-time profile-injection primitive)
     - point: "SubagentStart"
