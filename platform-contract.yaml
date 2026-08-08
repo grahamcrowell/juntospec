@@ -198,7 +198,7 @@ primitives:
     anchor: "canonical-install-root"
     anchor_status: "pending"
   - name: "model-tier"
-    role: "cognitive-demand abstraction primitive — derivation chains and protocol prose refer to model capability classes (routine, implementation, reasoning) with cost ratios; concrete model-id binding (e.g., sonnet/opus[1m]/fable) lives in platform-defaults.yaml"
+    role: "cognitive-demand abstraction primitive - derivation chains and protocol prose refer to cognitive-demand classes (routine, implementation, reasoning); the concrete binding lives in platform-defaults.yaml, where a tier maps to an effort level rather than to a distinct model. Whether that effort binds per spawn or once per session is a platform capability (platform.effort_binding), not a property of this primitive. This role string deliberately names no concrete model: platform-contract.yaml sits outside the s16 sweep scope, so a model id here would be an unguarded counter-example to the rule s16 enforces"
     anchor: "canonical-model-tier"
     anchor_status: "pending"
   - name: "operational-namespace"
@@ -362,12 +362,12 @@ banned_terms:
     note: "Claude manager-protocol filename — spec corpus uses CONDUCTOR.md / 'manager protocol file'"
   # BL-025-d concrete model-id sweep targets. Word-boundary semantics enforced
   # by the regex form (BSD-awk-portable: non-word char neighbors or line edges).
-  - term: "(^|[^a-zA-Z0-9_-])(haiku|sonnet|opus)([^a-zA-Z0-9_-]|$)"
+  - term: "(^|[^a-zA-Z0-9_])(haiku|sonnet|opus|fable|mythos)([^a-zA-Z0-9_]|$)"
     kind: "regex"
     scope: "core-spec-corpus"
     assertion: "s16"
     exempt_regions: ["m16-section-3", "d08-verbatim-blocks"]
-    note: "Concrete Claude model IDs — spec corpus uses {tier-routine}/{tier-implementation}/{tier-reasoning}"
+    note: "Concrete Claude model IDs - spec corpus uses {tier-routine}/{tier-implementation}/{tier-reasoning}. Hyphen is deliberately NOT in the boundary exclusion class: with `-` excluded, every canonical API id escaped the guard (claude-opus-5, claude-sonnet-5, claude-fable-5 all passed silently) while only bare `opus` / `opus[1m]` were caught. Since one model id is now the string authors most want to write into prose, that gap mattered. `fable` and `mythos` added: the family grew past the original haiku/sonnet/opus sweep"
 
 # --- keep_list -----------------------------------------------------------
 # Surviving banned-term occurrences after the BL-025-c sweep. Each entry
@@ -474,7 +474,7 @@ keep_list:
     signed_off_at: "2026-05-06"
     note: "YAML literal `name: \"TeamCreate\"` in capability-schema example — platform identifier, not spec vocabulary. Hash recomputed BL-027 mechanical pass."
   - file: "M16-derivation-architecture.md"
-    line: 185
+    line: 207
     term: "SubagentStart"
     match_kind: "literal"
     context_hash: "c10c0834"
@@ -483,7 +483,7 @@ keep_list:
     signed_off_at: "2026-05-06"
     note: "YAML comment binding SubagentStart hook point to Onboard primitive. Hash recomputed BL-027 mechanical pass."
   - file: "M16-derivation-architecture.md"
-    line: 186
+    line: 208
     term: "SubagentStart"
     match_kind: "literal"
     context_hash: "1437d548"

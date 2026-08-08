@@ -271,35 +271,52 @@ Expert output verbosity should match role's contribution to decision-making:
 
 ---
 
-## [IMMUTABLE] 6. Model Selection for Spawned Agents
+## [IMMUTABLE] 6. Model and Effort Selection for Spawned Agents
 
-Set the `model` parameter on Consult primitive spawns to match task's cognitive demand. Sub-agents inherit the manager's model tier (typically reasoning) if unset — this wastes tokens on routine work.
+Every persona runs on the **same model**. Cognitive demand is expressed as **effort** - depth of reasoning on one model - not as a choice between models of differing capability. The concrete model, and the binding from each tier to an effort level, are rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time.
 
-The table below abstracts over model tiers; the concrete model column is rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time. Cost-ratio numerics are persona-anchors and stay rendered regardless of platform binding.
+Set the model parameter explicitly on every Consult primitive spawn. A spawn that leaves it unset inherits the manager's model, which is correct only by coincidence and silently wrong the moment the manager's own model differs.
 
-| Model | When to Use | Examples |
-|-------|-------------|----------|
-| **{tier-routine}** (cost ratio 1.0×) | Routine edits, formatting, mechanical transforms | Doc updates, backlog item text, boilerplate, search-and-replace across files |
-| **{tier-implementation}** (cost ratio ~3.0×) | Implementation with clear requirements, analysis with known patterns | Feature implementation from a spec, stakeholder analysis, code review, test writing |
-| **{tier-reasoning}** (cost ratio ~5.0×) | Ambiguous problems, architectural decisions, novel design | System design, complex debugging, adversarial review, cross-domain synthesis |
+The tier vocabulary is unchanged; **what it denotes has changed**. A tier is a cognitive-demand class that binds to an effort level, not to a model.
 
-When in doubt, use the more capable tier ({tier-routine} < {tier-implementation} < {tier-reasoning}).
+| Tier | Cognitive demand | Examples |
+|------|------------------|----------|
+| **{tier-routine}** | Routine edits, formatting, mechanical transforms | Doc updates, backlog item text, boilerplate, search-and-replace across files |
+| **{tier-implementation}** | Implementation with clear requirements, analysis with known patterns | Feature implementation from a spec, stakeholder analysis, code review, test writing |
+| **{tier-reasoning}** | Ambiguous problems, architectural decisions, novel design | System design, complex debugging, adversarial review, cross-domain synthesis |
 
-### Minimum-Model Floor [DERIVED] [← Chain 7]
+**No cost-ratio numerics are published in this table.** They were removed rather than re-baselined. With a single model the tiers no longer differ in per-token price, and their true relative cost is a function of thinking-token spend, which is not a published platform constant. Inventing a multiplier would be fiction in a document adopters read. *Design intent (Axiom 4 - Token Efficiency): higher effort still costs materially more, and the ordering {tier-routine} < {tier-implementation} < {tier-reasoning} is what the axiom actually needs. The ordering is real even where the multiplier is unknown.*
 
-A configurable **minimum-model floor** sets the lowest tier any spawn may run on. The floor is an operator policy; its concrete value binds in [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) `platform.model_policy.min_model_tier` (a tier name — {tier-routine}, {tier-implementation}, or {tier-reasoning}), not in this spec.
+When in doubt, use the higher tier.
 
-The floor is applied as the **final step** of tier selection, after the function-first rules and per-role defaults below have resolved a tier: a resolved tier below the floor is raised to the floor; a resolved tier at or above it is unchanged. The floor is a lower bound only — it never lowers a selection, so every escalation (adversarial reviewer slot, Complex-tier lead, domain-decisive-risk specialist) still stands. A floor of {tier-routine} is the identity case (no spawn is bumped; selection is exactly the rules below); raising the floor trades token cost for a uniform capability guarantee, bounded above by {tier-reasoning} (every spawn on the reasoning tier). *Design intent (Axiom 4 — Token Efficiency, inverted): the floor lets an operator buy a capability guarantee with tokens when routine-tier accuracy is not trusted for the engagement.*
+### Effort Binding Site [EXTERNAL]
+
+Where a tier's effort takes effect is a **platform capability**, not a protocol choice. It is recorded as `platform.effort_binding` in the Layer 0 snapshot, and takes one of two values:
+
+- **`per-spawn`** - the platform accepts an effort argument on the spawn call. The function-first rules below select effort per spawn, exactly as written.
+- **`session`** - the platform exposes no per-spawn effort knob. Effort is set once per session and therefore keys off **engagement tier**: the manager sets session effort from `platform.engagement_effort` at triage time. The function-first rules below then govern where the manager spends attention *within* that session; they do not vary a per-spawn parameter, because there is none to vary.
+
+The rules in this section are written per spawn because that is the general case. On a `session` platform they degrade to engagement-tier binding rather than being deleted, because the same spec corpus generates targets where the knob does exist. Deleting them would discard a capability that other platforms have.
+
+### Minimum-Effort Floor [DERIVED] [← Chain 7]
+
+A configurable **minimum-effort floor** sets the lowest tier any spawn may run at. The floor is an operator policy; its concrete value binds in [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) `platform.model_policy.min_effort_tier` (a tier name - {tier-routine}, {tier-implementation}, or {tier-reasoning}), not in this spec.
+
+The floor is applied as the **final step** of tier selection, after the function-first rules and per-role defaults below have resolved a tier: a resolved tier below the floor is raised to the floor; a resolved tier at or above it is unchanged. The floor is a lower bound only - it never lowers a selection, so every escalation (adversarial reviewer slot, Complex-tier lead, domain-decisive-risk specialist) still stands. A floor of {tier-routine} is the identity case (no spawn is bumped; selection is exactly the rules below); raising the floor trades token cost for a uniform depth-of-reasoning guarantee, bounded above by {tier-reasoning}. *Design intent (Axiom 4 - Token Efficiency, inverted): the floor lets an operator buy a reasoning-depth guarantee with tokens when routine-tier accuracy is not trusted for the engagement.*
+
+The floor was renamed from *minimum-model floor*. With a single model it can no longer raise capability, only depth of reasoning; the mechanism is unchanged but the old name asserted something now false. On a `session`-binding platform the floor applies to the engagement-tier-derived session effort, which is where selection actually resolves.
 
 ### Function-First Selection Rules [DERIVED] [← Chain 7]
 
-The manager chooses the tier per spawn by the spawn's **function** (what the role is doing in this engagement), with role defaults as a secondary anchor. The function rules below override the role-default table when they conflict — a role's default tier is the floor for routine engagements, not a ceiling on adversarial or high-risk ones.
+The manager chooses the **effort tier** per spawn by the spawn's **function** (what the role is doing in this engagement), with role defaults as a secondary anchor. The function rules below override the role-default table when they conflict - a role's default tier is the floor for routine engagements, not a ceiling on adversarial or high-risk ones.
 
-- **Adversarial reviewer slot (any role)** → **{tier-reasoning}**. The reviewer's output is forwarded verbatim and must break the work; it is the load-bearing critique surface and should run on the strongest tier regardless of the reviewer's default.
-- **Complex-tier lead implementer** → **{tier-reasoning}**. Complex-tier work is by definition ambiguous, cross-domain, or high-blast-radius; the lead carries the synthesis weight.
-- **Moderate-tier lead implementer** → **{tier-implementation}** by default; escalate to **{tier-reasoning}** when the implementation is high-risk (novel design, security-sensitive, irreversible migration, or the findings ledger contains an unresolved TENSION the lead must arbitrate).
-- **Phase-1 stakeholder analysts (output compressed to FINDING / TENSION per §5)** → **{tier-implementation}**; drop to **{tier-routine}** for bounded or lightweight lenses (e.g., docs-only review, mechanical conformance checks).
-- **Specialists engaged on a domain trigger** → **{tier-implementation}** by default; escalate to **{tier-reasoning}** when their domain is the **decisive risk** for the engagement (e.g., security on an auth/crypto change, reliability on an SLO-impacting change, data architect on a destructive migration).
+These rules select effort, not a model: every spawn runs the same model. On a platform whose `effort_binding` is `session`, they cannot vary a per-spawn parameter, and instead tell the manager which spawns warrant the session's attention budget; see Effort Binding Site above.
+
+- **Adversarial reviewer slot (any role)** -> **{tier-reasoning}**. The reviewer's output is forwarded verbatim and must break the work; it is the load-bearing critique surface and warrants the deepest reasoning regardless of the reviewer's default.
+- **Complex-tier lead implementer** -> **{tier-reasoning}**. Complex-tier work is by definition ambiguous, cross-domain, or high-blast-radius; the lead carries the synthesis weight.
+- **Moderate-tier lead implementer** -> **{tier-implementation}** by default; escalate to **{tier-reasoning}** when the implementation is high-risk (novel design, security-sensitive, irreversible migration, or the findings ledger contains an unresolved TENSION the lead must arbitrate).
+- **Phase-1 stakeholder analysts (output compressed to FINDING / TENSION per §5)** -> **{tier-implementation}**; drop to **{tier-routine}** for bounded or lightweight lenses (e.g., docs-only review, mechanical conformance checks).
+- **Specialists engaged on a domain trigger** -> **{tier-implementation}** by default; escalate to **{tier-reasoning}** when their domain is the **decisive risk** for the engagement (e.g., security on an auth/crypto change, reliability on an SLO-impacting change, data architect on a destructive migration).
 
 ### Per-Role Default Tier (adjustable; function rules always win)
 
@@ -309,11 +326,17 @@ These are **starting defaults** for the role when no function rule applies. Trea
 |--------------|-------|
 | **{tier-reasoning}** | Distinguished Engineer, Security Engineer, Site Reliability Engineer, Engineering Consultant |
 | **{tier-implementation}** | Software Engineer, Solutions Architect, DevOps Engineer, Test Engineer, Data Architect, Data Scientist, ML Engineer, Enterprise Architect, Business Analyst, Product Manager, Executive Leadership Coach |
-| **{tier-routine}** | Technical Writer (docs strategy) — escalate to **{tier-implementation}** when user-facing prose is the deliverable |
+| **{tier-routine}** | Technical Writer (docs strategy) - escalate to **{tier-implementation}** when user-facing prose is the deliverable |
 
-### Effort (out of scope in the current architecture)
+### Effort Application [EXTERNAL]
 
-Per-expert **effort** is not a controllable parameter under the current execution substrate: expert agents are spawned as the platform's general-purpose subagent type with profile content injected via the Onboard primitive, and that spawn surface exposes no per-invocation effort knob. Effort is therefore **session-level** (controlled by the user's session-wide effort setting); it cannot be varied per expert today. Per-expert effort tiering would require re-architecting experts as native, distinct subagent types — defer; do not fabricate per-expert effort control.
+Effort is the mechanism this section selects. How it is applied depends on `platform.effort_binding` (see Effort Binding Site above).
+
+Where binding is **`session`**, effort cannot be varied per expert. Expert agents are spawned as the platform's general-purpose subagent type with profile content injected via the Onboard primitive, and that spawn surface exposes no per-invocation effort knob. The manager therefore sets session effort once per engagement from `platform.engagement_effort`, and raises it if triage re-classifies the engagement upward mid-run. **Do not fabricate per-expert effort control on such a platform**: naming an effort level in a spawn prompt documents intent, it does not set a parameter, and it must never be presented as enforcement.
+
+Where binding is **`per-spawn`**, the function-first rules apply directly to the spawn call and no session-level approximation is needed.
+
+Re-architecting experts as native, distinct subagent types would make per-expert effort controllable on a `session` platform too. That remains deferred: it is a substrate change, not a protocol change.
 
 ---
 
