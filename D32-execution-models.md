@@ -325,8 +325,8 @@ These are **starting defaults** for the role when no function rule applies. Trea
 | Default Tier | Roles |
 |--------------|-------|
 | **{tier-reasoning}** | Distinguished Engineer, Security Engineer, Site Reliability Engineer, Engineering Consultant |
-| **{tier-implementation}** | Software Engineer, Solutions Architect, DevOps Engineer, Test Engineer, Data Architect, Data Scientist, ML Engineer, Enterprise Architect, Business Analyst, Product Manager, Executive Leadership Coach |
-| **{tier-routine}** | Technical Writer (docs strategy) - escalate to **{tier-implementation}** when user-facing prose is the deliverable |
+| **{tier-implementation}** | Software Engineer, Solutions Architect, DevOps Engineer, Test Engineer, Data Architect, Data Scientist, ML Engineer, Enterprise Architect |
+| **{tier-routine}** | Business Analyst, Product Manager, Executive Leadership Coach, Technical Writer - escalate to **{tier-implementation}** when user-facing prose or a decision artifact is the deliverable |
 
 ### Effort Application [EXTERNAL]
 
