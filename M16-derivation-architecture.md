@@ -151,36 +151,58 @@ platform:
     # ... (25 tools total — see platform-defaults.yaml for complete manifest)
   models:
     # Illustrative Layer-0 snapshot (example values, not the live roster - see platform-defaults.yaml).
-    - id: "haiku"
-      api_id: "claude-haiku-4-5-20251001"
-      tier: "routine"
-      context_window: 200000
-      max_output_tokens: 64000
-      cost_ratio: 0.2
+    # This is a CAPABILITY record: it states what the platform offers, and stays
+    # factually complete. It carries no `tier` field - tiers bind to effort, not
+    # to models (see effort_tiers below). Which of these may actually be spawned
+    # is a policy question, answered by model_policy.
+    - id: "opus"
+      api_id: "claude-opus-5"
+      context_window: 1000000
+      max_output_tokens: 128000
+      input_price_per_mtok: 5
+      output_price_per_mtok: 25
     - id: "sonnet"
       api_id: "claude-sonnet-5"
-      tier: "routine"
       context_window: 1000000
       max_output_tokens: 128000
-      cost_ratio: 0.6
-    - id: "opus[1m]"
-      api_id: "claude-opus-4-8"
-      tier: "implementation"
-      context_window: 1000000
-      max_output_tokens: 128000
-      cost_ratio: 1.0  # baseline
+      input_price_per_mtok: 3
+      output_price_per_mtok: 15
     - id: "fable"
       api_id: "claude-fable-5"
-      tier: "reasoning"
-      context_window: 1000000   # confirmed: system prompt states "1M context"
+      context_window: 1000000
       max_output_tokens: 128000
-      cost_ratio: 2.0
+      input_price_per_mtok: 10
+      output_price_per_mtok: 50
+  effort_levels: ["low", "medium", "high", "xhigh", "max"]
+  effort_tiers:
+    # Where the tier vocabulary actually binds. Cognitive demand is depth of
+    # reasoning on one model, not a choice between models.
+    - tier: "routine"
+      effort: "high"
+    - tier: "implementation"
+      effort: "xhigh"
+    - tier: "reasoning"
+      effort: "max"
+  effort_binding: "session"   # per-spawn | session; a platform capability
+  session_effort_key: "effortLevel"
+  engagement_effort:
+    # Consulted only when effort_binding == "session".
+    simple: "routine"
+    moderate: "implementation"
+    complex: "reasoning"
   model_policy:
-    # Operator-tunable model-selection policy (not observable via introspection; filled from defaults).
-    # min_model_tier: minimum-model floor — the lowest tier any spawn may run on.
-    # A resolved tier below the floor is raised to it; the floor never lowers a selection.
-    # Value is a tier name (routine | implementation | reasoning); default "routine" (no floor).
-    min_model_tier: "routine"
+    # Operator policy (not observable via introspection; filled from defaults).
+    # default_model: the model every persona runs on.
+    # allowed_models / denied_models: optional org policy over the roster above.
+    #   Both MUST ship empty in a general artifact - naming a model here imposes
+    #   one organization's procurement policy on every adopter (Axiom 7).
+    # min_effort_tier: minimum-effort floor - the lowest tier any spawn may run
+    #   at. A resolved tier below the floor is raised to it; the floor never
+    #   lowers a selection. Value is a tier name; default "routine" (no floor).
+    default_model: "opus"
+    allowed_models: []
+    denied_models: []
+    min_effort_tier: "routine"
   hooks:
     # Platform name: "SubagentStart" | Spec primitive: Onboard (spawn-time profile-injection primitive)
     - point: "SubagentStart"
@@ -492,47 +514,63 @@ SENSITIVITY: Larger context windows reduce token pressure, potentially
   M-SE-01 data could shift thresholds by ±1.
 ```
 
-### Chain 7: Model Selection Mapping
+### Chain 7: Effort Selection Mapping
 
 ```
-CHAIN: model-selection
-PRODUCES: model-tier mapping to task cognitive demand (concrete model-id
-  bindings drawn from [platform-capabilities] Layer 0 model roster)
+CHAIN: effort-selection
+PRODUCES: cognitive-demand tier mapping to effort level (concrete tier ->
+  effort bindings drawn from [platform-capabilities] Layer 0 effort_tiers)
 INPUTS:
   axioms:
-    - Axiom 4: Token budget → use the cheapest model that meets the
-      task's cognitive demand
+    - Axiom 4: Token budget -> spend the least reasoning depth that meets
+      the task's cognitive demand
   platform:
-    - Model roster with capability tiers and cost ratios
-      (see [platform-capabilities] Layer 0 anchor §3, "Required Capabilities" /
-      "Model roster" row, for the canonical schema)
-    - Tier vocabulary: routine (1x baseline cost), implementation (~3x),
-      reasoning (~5x); concrete model-id bindings are drawn from the
-      platform-capabilities snapshot
-  measurements: [none — mapping is analytical given capability profiles]
+    - Effort ladder and tier bindings (see [platform-capabilities] Layer 0
+      anchor §3 for the canonical schema): platform.effort_levels and
+      platform.effort_tiers
+    - Effort binding site: platform.effort_binding (per-spawn | session)
+    - Model roster: a capability record only. One entry is designated
+      platform.model_policy.default_model and every persona runs on it.
+  measurements: [none - mapping is analytical given the demand profiles]
 DERIVATION:
   Step 1: Tasks have cognitive demand profiles: routine (pattern matching,
     formatting), implementation (structured reasoning with clear inputs),
-    reasoning (ambiguous problems, novel synthesis). ← Axiom 4
-  Step 2: Each model has a capability floor. Using a model below the floor
-    produces errors requiring re-work (net cost increase). Using a model
-    above the floor wastes the cost differential. ← Axiom 4 (minimality)
-  Step 3: Map demand to minimum-capable tier; concrete model-id binding
-    is drawn from the [platform-capabilities] snapshot at generation time:
-    routine → tier-routine (1x cost, sufficient capability)
-    implementation → tier-implementation (~3x cost, required capability)
-    reasoning → tier-reasoning (~5x cost, required capability)
-    ← [platform-capabilities] model roster
-  Step 4: "When in doubt, use the more capable tier" — the cost of
-    re-work from under-specifying exceeds the cost differential of
-    one tier up. ← Axiom 4 (total cost, not per-call cost)
-OUTPUT: 3-row mapping table (tier → cognitive-demand class with task types
-  and examples). Concrete model column is rendered from the
-  [platform-capabilities] snapshot's model roster, not enumerated here.
-SENSITIVITY: New tiers (e.g., a tier between implementation and reasoning
-  in capability and cost) would add a row. Cost-ratio shifts in the
-  [platform-capabilities] snapshot would shift the "when in doubt"
-  guidance. A single-model platform collapses this to a no-op.
+    reasoning (ambiguous problems, novel synthesis). <- Axiom 4
+  Step 2: Each demand profile has a reasoning-depth floor. Running below
+    that floor produces errors requiring re-work (net cost increase).
+    Running above it spends thinking tokens that buy nothing.
+    <- Axiom 4 (minimality)
+  Step 3: Map demand to the minimum sufficient effort tier; the concrete
+    tier -> effort binding is drawn from the [platform-capabilities]
+    snapshot at generation time:
+    routine        -> {tier-routine}
+    implementation -> {tier-implementation}
+    reasoning      -> {tier-reasoning}
+    <- [platform-capabilities] effort_tiers
+  Step 4: "When in doubt, use the higher tier" - the cost of re-work from
+    under-reasoning exceeds the marginal thinking-token cost of one tier
+    up. <- Axiom 4 (total cost, not per-call cost)
+  Step 5: Where platform.effort_binding == "session" the platform exposes
+    no per-spawn effort argument, so the mapping is applied once per
+    engagement via platform.engagement_effort instead of per spawn. The
+    mapping is unchanged; only its application point moves.
+    <- [platform-capabilities] effort_binding
+OUTPUT: 3-row mapping table (tier -> cognitive-demand class with task types
+  and examples). The tier -> effort binding is rendered from the
+  [platform-capabilities] snapshot, not enumerated here.
+SUPERSEDES: this chain previously derived a mapping from cognitive demand to
+  MODEL capability tiers, and its SENSITIVITY note predicted that "a
+  single-model platform collapses this to a no-op." That prediction assumed
+  tiers bind to models. They now bind to effort, so a single-model platform
+  does NOT collapse the chain: it removes one confound (capability varying
+  between spawns) and leaves reasoning depth as the sole variable. Step 2 is
+  the re-derived load-bearing step - the old "each model has a capability
+  floor" argument dissolved with the roster, and the floor is now a property
+  of the demand profile rather than of a model.
+SENSITIVITY: A platform whose effort ladder has fewer than three usable
+  levels forces two tiers onto one level, making the middle tier vestigial.
+  A platform with no effort control at all does collapse this to a no-op.
+  An added effort level between two tiers would add a row.
 ```
 
 ### Chain 8: Role Inventory
@@ -610,6 +648,7 @@ Five derivation chains (Chains 4, 5, 6, and partially 7) reference empirical con
 | **Measures** | Total token consumption and wall-clock time for tier-representative tasks |
 | **Method** | Run 5 tasks per tier (Simple, Moderate, Complex). Record total tokens (input + output) and elapsed time. Compute per-tier cost profiles. |
 | **Triage cutpoint input** | The cost ratio between tiers determines where the quality-vs-cost curves cross, informing cutpoint placement |
+| **New coupling (effort binding)** | On a platform whose `effort_binding` is `session`, engagement tier now also selects session effort via `platform.engagement_effort`. Coordination cost per tier therefore includes an effort component that did not exist when this measurement was specified: a Complex engagement is more expensive than a Moderate one both because it coordinates more agents *and* because every spawn in it reasons more deeply. Re-baseline before treating any pre-existing per-tier cost figure as comparable, and do not attribute the whole delta to coordination. |
 
 ### M-TRIAGE-02: Quality Delta Between Tiers
 

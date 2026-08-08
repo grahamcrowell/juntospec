@@ -79,7 +79,7 @@ Foundational axioms that drive every design decision in OpenJunto — the reason
 - Compact profiles: ~30-line, <2KB variants for Simple tier inline use
 - Tier-aware context loading: Simple (compact profiles only), Moderate (2-3 files), Complex (all files)
 - Compressed handback format: 5-line Simple tier vs. full 9-field Moderate/Complex format
-- Model selection: tier-routine for mechanical edits, tier-implementation for structured work, tier-reasoning for ambiguous problems
+- Effort selection: tier-routine for mechanical edits, tier-implementation for structured work, tier-reasoning for ambiguous problems (one model throughout; the tier sets reasoning depth, not capability)
 - Hook-based profile injection: inject only the needed profile, not the entire agents/ directory
 
 **What It Prohibits**:

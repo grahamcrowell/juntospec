@@ -291,27 +291,29 @@ Expert orientation [EXACT] (verbatim):
 - **Reviewer**: "Weakest current claim: [X]"
 ```
 
-### Model Selection [DERIVED table] [← Chain 7]
+### Model and Effort Selection [DERIVED table] [← Chain 7]
 
-Subsection header: `### Model Selection`
+Subsection header: `### Model and Effort Selection`
 
 Description (verbatim):
 ```
-Set the `model` parameter on Consult primitive spawns to match the task's cognitive demand. Sub-agents inherit the manager's model tier (typically reasoning) if unset — this wastes tokens on routine work.
+Every persona runs on the same model. Cognitive demand is expressed as effort - depth of reasoning on one model - not as a choice between models of differing capability. Set the model parameter explicitly on every Consult primitive spawn; a spawn that leaves it unset inherits the manager's model, which is correct only by coincidence.
 ```
 
-Model table [DERIVED] [← Chain 7] [EXTERNAL model column] — table rows abstract over model tiers; the concrete model column is rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time. Cost-ratio numerics are persona-anchors and remain in the rendered table regardless of platform binding. Tier-class structure (verbatim):
+Tier table [DERIVED] [← Chain 7] [EXTERNAL binding] - rows abstract over cognitive-demand classes; the tier-to-effort binding is rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time. Cost-ratio numerics are deliberately absent: with a single model the tiers do not differ in per-token price, and their relative cost is a thinking-token function that is not a published platform constant. Tier-class structure (verbatim):
 ```
-| Model | When to Use | Examples |
-|-------|-------------|----------|
-| **{tier-routine}** (cost ratio 1.0×) | Routine edits, formatting, mechanical transforms | Doc updates, backlog item text, boilerplate, search-and-replace across files |
-| **{tier-implementation}** (cost ratio ~3.0×) | Implementation with clear requirements, analysis with known patterns | Feature implementation from a spec, stakeholder analysis, code review, test writing |
-| **{tier-reasoning}** (cost ratio ~5.0×) | Ambiguous problems, architectural decisions, novel design | System design, complex debugging, adversarial review, cross-domain synthesis |
+| Tier | Cognitive demand | Examples |
+|------|------------------|----------|
+| **{tier-routine}** | Routine edits, formatting, mechanical transforms | Doc updates, backlog item text, boilerplate, search-and-replace across files |
+| **{tier-implementation}** | Implementation with clear requirements, analysis with known patterns | Feature implementation from a spec, stakeholder analysis, code review, test writing |
+| **{tier-reasoning}** | Ambiguous problems, architectural decisions, novel design | System design, complex debugging, adversarial review, cross-domain synthesis |
 ```
+
+Effort binding site [EXTERNAL] - `platform.effort_binding` selects how a tier's effort is applied: `per-spawn` (the spawn call takes an effort argument, so the function-first rules apply directly) or `session` (no per-spawn knob, so effort is set once per engagement from `platform.engagement_effort` and the function rules govern attention within the session rather than a parameter).
 
 Guidance (verbatim):
 ```
-When in doubt, use the more capable tier ({tier-routine} < {tier-implementation} < {tier-reasoning}).
+When in doubt, use the higher tier.
 ```
 
 ---
