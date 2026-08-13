@@ -44,6 +44,18 @@ issue-tracker-check succeeds + project non-null?  -> issue tracker mode with KEY
 
 The file-backed backlog is not a flat task list; it is the user's own task graph -- a thin layer of sequencing, blocking rationale, acceptance criteria, and cross-item links over the systems that own external state (the issue tracker, code host, external docs). Discover parses this shape, Deliver and Graduation write it, the session-state command audits it, and the backlog-compaction command rewrites it; the shape MUST be identical across all of them so they interoperate. The canonical starting form is the `backlog` template (`{install-root}/templates/backlog.md`).
 
+**One backlog, possibly many files.** A project large enough to carry several sub-projects may hold its backlog in several files, one per owning node, rather than one. Every command that READS the backlog MUST enumerate the file set and aggregate across it, rather than assuming one file: pointed at a single file it reports success while omitting the majority of the work, and nothing about reading one file successfully reveals that others exist. Commands that WRITE resolve a single target path as before. When the set has more than one file, item ids MUST be unique across the whole set, not merely within a file -- an id is the cross-reference key, so two items sharing one id make every inbound link resolve to whichever is read first. That uniqueness is machine-checkable and MUST be checked rather than assumed; see § Backlog Integrity Checks.
+
+### Backlog Integrity Checks
+
+Three structural defects are invisible to a human reading the files and cheap for a machine to find, so they MUST be checked mechanically rather than left to review:
+
+- **Duplicate anchor id** -- the same anchor defined twice in one file; every inbound link resolves to the first and the second is unreachable.
+- **Duplicate item id within a file** -- the second definition is unreachable.
+- **Item id collision across files** -- two entirely different items answer to one id. This class becomes possible only once a backlog is split across files, and two concurrent sessions creating items on the same day is enough to produce it.
+
+Item-id definitions are read from the § Shape definition form only, never from a mention: a cross-reference in prose MUST NOT count as a second definition, or the check reports a finding on every link and stops being trusted. A finding describes the project's own state, not a broken tool; a consumer surfacing one MUST keep that distinction visible.
+
 ### Shape
 
 - **Workstream grouping**: open items group into workstreams; each workstream states its goal, sequencing, and current bottleneck. A Workstreams index table lists workstream -> goal -> current bottleneck -> member item ids. The index's item column is a pointer list, never a status cache.
@@ -310,9 +322,11 @@ Commands are **imperative instructions** defining protocols — step-by-step pro
 
 **Purpose**: Size-triggered backlog hygiene. Keep the file-backed backlog small enough that a single read holds it in view, so drift stays catchable by routine edits rather than requiring a dedicated audit. Pins the current file to a retrievable git snapshot, then rewrites active items into the compact § Backlog Item Schema shape, relocating implementation narrative to where it already lives (commits, PR descriptions, session state). All changes presented for approval before writing.
 
-**Invocation**: No arguments. Runs against the resolved backlog path (`oj-helper resolve-path backlog`).
+**Invocation**: No arguments. Runs against the backlog file set (`oj-helper backlog-list`, falling back to the single `oj-helper resolve-path backlog`).
 
 #### Protocol
+
+**Step 0 — Enumerate the file set**: A backlog may be one file or several. Enumerate with `oj-helper backlog-list`, falling back to `oj-helper resolve-path backlog` when it returns nothing. **Compaction operates PER FILE, one file at a time**: size is a per-file property, and a project splits its backlog precisely so each piece stays small enough to hold in view. Run the protocol to completion for one file -- including its own pin and its own confirmation gate -- before starting the next, and report per-file results. **Never merge several files into one as part of compaction**: that would undo a split the project deliberately made, which is a structural decision belonging to the user, not a side effect of a hygiene pass. Before compacting a multi-file set, run `oj-helper backlog-lint` and surface any findings to the user FIRST -- a duplicate or colliding id is exactly the kind of defect a rewrite can entrench, or quietly "resolve" by dropping one of the two items, and it should be seen as its own problem rather than folded into a compaction diff.
 
 **Step 1 — Measure and gate**: Read the resolved backlog. Trigger compaction when the file exceeds roughly 500-600 lines, OR a single read needs more than one page to load it. Below the threshold, report the size and stop (do not compact a small file) unless the user forces a run. In issue-tracker mode there is no large local file to compact — report and stop.
 
