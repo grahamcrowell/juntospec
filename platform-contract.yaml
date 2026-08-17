@@ -198,7 +198,7 @@ primitives:
     anchor: "canonical-install-root"
     anchor_status: "pending"
   - name: "model-tier"
-    role: "cognitive-demand abstraction primitive - derivation chains and protocol prose refer to cognitive-demand classes (routine, implementation, reasoning); the concrete binding lives in platform-defaults.yaml, where a tier maps to an effort level rather than to a distinct model. Whether that effort binds per spawn or once per session is a platform capability (platform.effort_binding), not a property of this primitive. This role string deliberately names no concrete model: platform-contract.yaml sits outside the s16 sweep scope, so a model id here would be an unguarded counter-example to the rule s16 enforces"
+    role: "cognitive-demand abstraction primitive - derivation chains and protocol prose refer to cognitive-demand classes (routine, implementation, reasoning); the concrete binding lives in platform-defaults.yaml, where a tier maps to an effort level rather than to a distinct model. Whether that effort binds per spawn, per agent definition, or once per session is a platform capability (platform.effort_binding), not a property of this primitive. Model capability is a separate axis keyed by role function (authoring / advisory model classes, bound in platform-defaults.yaml) and is likewise not a property of this primitive. This role string deliberately names no concrete model: platform-contract.yaml sits outside the s16 sweep scope, so a model id here would be an unguarded counter-example to the rule s16 enforces"
     anchor: "canonical-model-tier"
     anchor_status: "pending"
   - name: "operational-namespace"
@@ -474,7 +474,7 @@ keep_list:
     signed_off_at: "2026-05-06"
     note: "YAML literal `name: \"TeamCreate\"` in capability-schema example — platform identifier, not spec vocabulary. Hash recomputed BL-027 mechanical pass."
   - file: "M16-derivation-architecture.md"
-    line: 207
+    line: 218
     term: "SubagentStart"
     match_kind: "literal"
     context_hash: "c10c0834"
@@ -483,7 +483,7 @@ keep_list:
     signed_off_at: "2026-05-06"
     note: "YAML comment binding SubagentStart hook point to Onboard primitive. Hash recomputed BL-027 mechanical pass."
   - file: "M16-derivation-architecture.md"
-    line: 208
+    line: 219
     term: "SubagentStart"
     match_kind: "literal"
     context_hash: "1437d548"
