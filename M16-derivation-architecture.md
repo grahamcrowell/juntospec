@@ -176,30 +176,41 @@ platform:
   effort_levels: ["low", "medium", "high", "xhigh", "max"]
   effort_tiers:
     # Where the tier vocabulary actually binds. Cognitive demand is depth of
-    # reasoning on one model, not a choice between models.
+    # reasoning; which model does the reasoning is set by the role's class.
     - tier: "routine"
       effort: "high"
     - tier: "implementation"
       effort: "xhigh"
     - tier: "reasoning"
       effort: "max"
-  effort_binding: "session"   # per-spawn | session; a platform capability
-  session_effort_key: "effortLevel"
+  effort_binding: "per-agent" # per-spawn | per-agent | session; a platform
+                              # capability. Determine it from OBSERVED spawn
+                              # records, not from which injection paths exist:
+                              # a target that registers agent definitions as
+                              # first-class spawn targets binds per-agent even
+                              # where an injection path also exists.
+  session_effort_key: "effortLevel"   # covers the manager's own turns
+  agent_effort_key: "effort"          # field in the agent definition
   engagement_effort:
-    # Consulted only when effort_binding == "session".
+    # Consulted for the manager's session effort. On a per-agent platform the
+    # roles carry their own effort and this covers the manager only.
     simple: "routine"
     moderate: "implementation"
     complex: "reasoning"
   model_policy:
     # Operator policy (not observable via introspection; filled from defaults).
-    # default_model: the model every persona runs on.
+    # default_model / advisory_model: the two model CLASSES. authoring roles
+    #   (they write code or a durable artifact) take default_model; advisory
+    #   roles (they read and form a view) take advisory_model. Protocol prose
+    #   names the CLASSES only - see Axiom 7 note below.
     # allowed_models / denied_models: optional org policy over the roster above.
     #   Both MUST ship empty in a general artifact - naming a model here imposes
     #   one organization's procurement policy on every adopter (Axiom 7).
     # min_effort_tier: minimum-effort floor - the lowest tier any spawn may run
     #   at. A resolved tier below the floor is raised to it; the floor never
     #   lowers a selection. Value is a tier name; default "routine" (no floor).
-    default_model: "opus"
+    default_model: "opus"        # authoring class; also the promote-to target
+    advisory_model: "sonnet"     # advisory class
     allowed_models: []
     denied_models: []
     min_effort_tier: "routine"
@@ -528,9 +539,12 @@ INPUTS:
     - Effort ladder and tier bindings (see [platform-capabilities] Layer 0
       anchor §3 for the canonical schema): platform.effort_levels and
       platform.effort_tiers
-    - Effort binding site: platform.effort_binding (per-spawn | session)
-    - Model roster: a capability record only. One entry is designated
-      platform.model_policy.default_model and every persona runs on it.
+    - Effort binding site: platform.effort_binding
+      (per-spawn | per-agent | session)
+    - Model roster: a capability record. Two entries are designated as
+      CLASSES - platform.model_policy.default_model (authoring) and
+      .advisory_model (advisory) - and a role takes the class its function
+      calls for.
   measurements: [none - mapping is analytical given the demand profiles]
 DERIVATION:
   Step 1: Tasks have cognitive demand profiles: routine (pattern matching,
@@ -550,23 +564,42 @@ DERIVATION:
   Step 4: "When in doubt, use the higher tier" - the cost of re-work from
     under-reasoning exceeds the marginal thinking-token cost of one tier
     up. <- Axiom 4 (total cost, not per-call cost)
-  Step 5: Where platform.effort_binding == "session" the platform exposes
-    no per-spawn effort argument, so the mapping is applied once per
-    engagement via platform.engagement_effort instead of per spawn. The
-    mapping is unchanged; only its application point moves.
+  Step 5: The mapping's application point follows
+    platform.effort_binding, and the mapping itself is unchanged in every
+    case - only where it lands moves. "per-spawn": applied to the spawn
+    call. "per-agent": applied to the role's declared effort, with a
+    function rule above that declaration acting as an override. "session":
+    applied once per engagement via platform.engagement_effort.
     <- [platform-capabilities] effort_binding
+  Step 6: Effort is set once per binding site and NOT raised mid-engagement.
+    Where effort participates in the rendered prompt prefix, changing it
+    between requests invalidates the prompt cache, and the re-write cost
+    scales with how far into the engagement the change lands - so a raise
+    intended to buy depth can cost more than the depth is worth.
+    <- Axiom 4 (total cost, not per-call cost)
+  Step 7: Model class follows function, not seniority: a role that reads and
+    forms a view has the same token profile whatever its domain, so paying
+    authoring-class rates for it buys nothing Axiom 4 recognises. Capability
+    is bought where an artifact is produced; depth is bought per spawn by
+    the function rules. <- Axiom 4 (minimality)
 OUTPUT: 3-row mapping table (tier -> cognitive-demand class with task types
   and examples). The tier -> effort binding is rendered from the
   [platform-capabilities] snapshot, not enumerated here.
 SUPERSEDES: this chain previously derived a mapping from cognitive demand to
   MODEL capability tiers, and its SENSITIVITY note predicted that "a
   single-model platform collapses this to a no-op." That prediction assumed
-  tiers bind to models. They now bind to effort, so a single-model platform
-  does NOT collapse the chain: it removes one confound (capability varying
+  tiers bind to models. They bind to effort, so a single-model platform does
+  NOT collapse the chain: it removes one confound (capability varying
   between spawns) and leaves reasoning depth as the sole variable. Step 2 is
   the re-derived load-bearing step - the old "each model has a capability
   floor" argument dissolved with the roster, and the floor is now a property
   of the demand profile rather than of a model.
+  A later revision restored a model axis, but on a different key. The
+  discarded version varied capability by cognitive demand, one spawn to the
+  next; Step 7 varies it by ROLE FUNCTION, which is stable across an
+  engagement. These are not the same axis and reinstating one does not
+  reinstate the other: demand still selects effort only, and the confound
+  the single-model move removed stays removed.
 SENSITIVITY: A platform whose effort ladder has fewer than three usable
   levels forces two tiers onto one level, making the middle tier vestigial.
   A platform with no effort control at all does collapse this to a no-op.
@@ -648,7 +681,8 @@ Five derivation chains (Chains 4, 5, 6, and partially 7) reference empirical con
 | **Measures** | Total token consumption and wall-clock time for tier-representative tasks |
 | **Method** | Run 5 tasks per tier (Simple, Moderate, Complex). Record total tokens (input + output) and elapsed time. Compute per-tier cost profiles. |
 | **Triage cutpoint input** | The cost ratio between tiers determines where the quality-vs-cost curves cross, informing cutpoint placement |
-| **New coupling (effort binding)** | On a platform whose `effort_binding` is `session`, engagement tier now also selects session effort via `platform.engagement_effort`. Coordination cost per tier therefore includes an effort component that did not exist when this measurement was specified: a Complex engagement is more expensive than a Moderate one both because it coordinates more agents *and* because every spawn in it reasons more deeply. Re-baseline before treating any pre-existing per-tier cost figure as comparable, and do not attribute the whole delta to coordination. |
+| **New coupling (effort binding)** | On a platform whose `effort_binding` is `session`, engagement tier now also selects session effort via `platform.engagement_effort`. Coordination cost per tier therefore includes an effort component that did not exist when this measurement was specified: a Complex engagement is more expensive than a Moderate one both because it coordinates more agents *and* because every spawn in it reasons more deeply. Re-baseline before treating any pre-existing per-tier cost figure as comparable, and do not attribute the whole delta to coordination. On a `per-agent` platform the effort component instead follows the mix of roles engaged, so the same engagement tier can cost materially different amounts depending on how many advisory versus authoring spawns it uses. |
+| **New coupling (turn count)** | Per-tier cost figures collected before spawns carried a turn ceiling are not comparable to figures collected after. A sub-agent re-reads its own accumulating transcript each turn, so its cost is superlinear in turns taken, and turns taken is what a ceiling bounds. Any per-tier or per-agent cost baseline must record the ceiling in force when it was measured; one that does not is uninterpretable rather than merely stale. |
 
 ### M-TRIAGE-02: Quality Delta Between Tiers
 

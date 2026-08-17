@@ -297,10 +297,10 @@ Subsection header: `### Model and Effort Selection`
 
 Description (verbatim):
 ```
-Every persona runs on the same model. Cognitive demand is expressed as effort - depth of reasoning on one model - not as a choice between models of differing capability. Set the model parameter explicitly on every Consult primitive spawn; a spawn that leaves it unset inherits the manager's model, which is correct only by coincidence.
+A persona runs on the model class its function calls for - authoring where the role writes code or a durable artifact, advisory where it reads and forms a view - and at the effort its function warrants. Both are declared where the role is declared, so a spawn that omits the model parameter inherits the role's class, which is intended. Set the parameter only to override, promoting a spawn whose function warrants more capability than its role's class provides.
 ```
 
-Tier table [DERIVED] [← Chain 7] [EXTERNAL binding] - rows abstract over cognitive-demand classes; the tier-to-effort binding is rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time. Cost-ratio numerics are deliberately absent: with a single model the tiers do not differ in per-token price, and their relative cost is a thinking-token function that is not a published platform constant. Tier-class structure (verbatim):
+Tier table [DERIVED] [← Chain 7] [EXTERNAL binding] - rows abstract over cognitive-demand classes; the tier-to-effort binding is rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time. Cost-ratio numerics are deliberately absent: a tier's relative cost is a thinking-token function that is not a published platform constant, and it compounds with the role's model class. Tier-class structure (verbatim):
 ```
 | Tier | Cognitive demand | Examples |
 |------|------------------|----------|
@@ -309,7 +309,7 @@ Tier table [DERIVED] [← Chain 7] [EXTERNAL binding] - rows abstract over cogni
 | **{tier-reasoning}** | Ambiguous problems, architectural decisions, novel design | System design, complex debugging, adversarial review, cross-domain synthesis |
 ```
 
-Effort binding site [EXTERNAL] - `platform.effort_binding` selects how a tier's effort is applied: `per-spawn` (the spawn call takes an effort argument, so the function-first rules apply directly) or `session` (no per-spawn knob, so effort is set once per engagement from `platform.engagement_effort` and the function rules govern attention within the session rather than a parameter).
+Effort binding site [EXTERNAL] - `platform.effort_binding` selects how a tier's effort is applied: `per-spawn` (the spawn call takes an effort argument, so the function-first rules apply directly), `per-agent` (the agent definition declares effort, so the rules resolve against the role's declaration and a rule landing above it is an override), or `session` (no knob at either site, so effort is set once per engagement from `platform.engagement_effort` and the function rules govern attention within the session rather than a parameter). On every binding, effort is set once and not raised mid-engagement: changing it between requests invalidates the prompt cache.
 
 Guidance (verbatim):
 ```

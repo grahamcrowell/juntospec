@@ -273,9 +273,18 @@ Expert output verbosity should match role's contribution to decision-making:
 
 ## [IMMUTABLE] 6. Model and Effort Selection for Spawned Agents
 
-Every persona runs on the **same model**. Cognitive demand is expressed as **effort** - depth of reasoning on one model - not as a choice between models of differing capability. The concrete model, and the binding from each tier to an effort level, are rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time.
+A persona runs on the model class its **function** calls for, and at the **effort** its function warrants. Both are properties of the role, declared where the role is declared; neither is a per-spawn decision the manager re-makes each time. The concrete model behind each class, and the binding from each tier to an effort level, are rendered from the [platform-capabilities](M16-derivation-architecture.md#platform-capabilities) Layer 0 snapshot at generation time.
 
-Set the model parameter explicitly on every Consult primitive spawn. A spawn that leaves it unset inherits the manager's model, which is correct only by coincidence and silently wrong the moment the manager's own model differs.
+Two model classes, keyed by what the role *does* rather than by how weighty its subject sounds:
+
+| Class | The role... | Because |
+|-------|-------------|---------|
+| **authoring** | writes code or a durable artifact | its turns produce the deliverable, so capability is load-bearing |
+| **advisory** | reads and forms a view | its handback is compressed (§5) before anyone acts on it |
+
+Reading code and forming a view costs the same whether the view is about security or about naming. A role does not earn a deeper class by seniority or by the gravity of its domain; it earns one by producing the artifact. Depth for a *particular* engagement is bought by the function-first rules below, per spawn, where it is load-bearing.
+
+Do **not** set the model parameter as boilerplate on every Consult primitive spawn. Where the platform reads model and effort from the role's own declaration (see Effort Binding Site), a spawn that omits the parameter inherits the role's class, which is the intended behaviour. Set it explicitly only to *override* - to promote a spawn whose function warrants more capability than its role's class provides.
 
 The tier vocabulary is unchanged; **what it denotes has changed**. A tier is a cognitive-demand class that binds to an effort level, not to a model.
 
@@ -285,18 +294,25 @@ The tier vocabulary is unchanged; **what it denotes has changed**. A tier is a c
 | **{tier-implementation}** | Implementation with clear requirements, analysis with known patterns | Feature implementation from a spec, stakeholder analysis, code review, test writing |
 | **{tier-reasoning}** | Ambiguous problems, architectural decisions, novel design | System design, complex debugging, adversarial review, cross-domain synthesis |
 
-**No cost-ratio numerics are published in this table.** They were removed rather than re-baselined. With a single model the tiers no longer differ in per-token price, and their true relative cost is a function of thinking-token spend, which is not a published platform constant. Inventing a multiplier would be fiction in a document adopters read. *Design intent (Axiom 4 - Token Efficiency): higher effort still costs materially more, and the ordering {tier-routine} < {tier-implementation} < {tier-reasoning} is what the axiom actually needs. The ordering is real even where the multiplier is unknown.*
+**No cost-ratio numerics are published in this table.** They were removed rather than re-baselined. A tier's true relative cost is a function of thinking-token spend, which is not a published platform constant, and it now compounds with the role's model class. Inventing a multiplier would be fiction in a document adopters read. *Design intent (Axiom 4 - Token Efficiency): higher effort still costs materially more, and the ordering {tier-routine} < {tier-implementation} < {tier-reasoning} is what the axiom actually needs. The ordering is real even where the multiplier is unknown.*
+
+**A third quantity bounds cost, and the tier vocabulary does not name it: how many turns a spawn takes.** Class sets the price per token and effort sets how many tokens a turn spends, but a sub-agent inherits no conversation history and therefore re-reads its own accumulating transcript on every turn - so an unbounded advisory spawn does not stop once it has formed a view. It explores, and cost climbs steeply with turn count. Where the platform exposes a per-role turn ceiling, advisory roles carry one; the authoring role does not, because its turns produce the deliverable. This is a platform capability, recorded in the Layer 0 snapshot, not a protocol constant.
 
 When in doubt, use the higher tier.
 
 ### Effort Binding Site [EXTERNAL]
 
-Where a tier's effort takes effect is a **platform capability**, not a protocol choice. It is recorded as `platform.effort_binding` in the Layer 0 snapshot, and takes one of two values:
+Where a tier's effort takes effect is a **platform capability**, not a protocol choice. It is recorded as `platform.effort_binding` in the Layer 0 snapshot, and takes one of three values:
 
 - **`per-spawn`** - the platform accepts an effort argument on the spawn call. The function-first rules below select effort per spawn, exactly as written.
-- **`session`** - the platform exposes no per-spawn effort knob. Effort is set once per session and therefore keys off **engagement tier**: the manager sets session effort from `platform.engagement_effort` at triage time. The function-first rules below then govern where the manager spends attention *within* that session; they do not vary a per-spawn parameter, because there is none to vary.
+- **`per-agent`** - the platform reads effort from the **agent definition**, so effort is a property of the role and overrides session effort for the duration of that spawn. The function-first rules resolve against the role's declared effort: a rule landing above it is an override, a rule landing at or below it is satisfied by the declaration. A one-off change means editing the role or spawning a different one, since the spawn call itself still takes no effort argument.
+- **`session`** - the platform exposes no effort knob at either site. Effort is set once per session and therefore keys off **engagement tier**: the manager sets session effort from `platform.engagement_effort` at triage time. The function-first rules below then govern where the manager spends attention *within* that session; they do not vary a parameter, because there is none to vary.
 
-The rules in this section are written per spawn because that is the general case. On a `session` platform they degrade to engagement-tier binding rather than being deleted, because the same spec corpus generates targets where the knob does exist. Deleting them would discard a capability that other platforms have.
+The rules in this section are written per spawn because that is the general case. On a `per-agent` platform they resolve against the role declaration; on a `session` platform they degrade to engagement-tier binding rather than being deleted, because the same spec corpus generates targets where the knob does exist. Deleting them would discard a capability that other platforms have.
+
+**Determining the binding is an empirical question, not a documentation one.** A platform whose agent definitions are read as first-class spawn targets binds `per-agent` even if some other injection path also exists; what settles it is which path the spawns actually take, observable in the platform's own spawn records. Recording `session` on a platform that in fact reads agent definitions does not merely understate a capability - it propagates into protocol prose as a prohibition, and every downstream rule written on top of that prohibition inherits it. Re-verify this key against observed spawn behaviour when a target's agent-registration surface changes.
+
+**Do not raise effort mid-session on any binding.** Where effort participates in the rendered prompt prefix, changing its value between requests invalidates the platform's prompt cache, so a mid-engagement raise re-writes the accumulated prefix at cache-write price - a cost that scales with how far into the engagement the raise happens. If triage re-classifies an engagement upward, complete or stop the current invocation and begin the next one at the higher setting. Vary effort *across* invocations, never within one.
 
 ### Minimum-Effort Floor [DERIVED] [← Chain 7]
 
@@ -304,13 +320,15 @@ A configurable **minimum-effort floor** sets the lowest tier any spawn may run a
 
 The floor is applied as the **final step** of tier selection, after the function-first rules and per-role defaults below have resolved a tier: a resolved tier below the floor is raised to the floor; a resolved tier at or above it is unchanged. The floor is a lower bound only - it never lowers a selection, so every escalation (adversarial reviewer slot, Complex-tier lead, domain-decisive-risk specialist) still stands. A floor of {tier-routine} is the identity case (no spawn is bumped; selection is exactly the rules below); raising the floor trades token cost for a uniform depth-of-reasoning guarantee, bounded above by {tier-reasoning}. *Design intent (Axiom 4 - Token Efficiency, inverted): the floor lets an operator buy a reasoning-depth guarantee with tokens when routine-tier accuracy is not trusted for the engagement.*
 
-The floor was renamed from *minimum-model floor*. With a single model it can no longer raise capability, only depth of reasoning; the mechanism is unchanged but the old name asserted something now false. On a `session`-binding platform the floor applies to the engagement-tier-derived session effort, which is where selection actually resolves.
+The floor was renamed from *minimum-model floor*. It governs depth of reasoning, not capability - capability is carried by the role's model class - so the mechanism is unchanged but the old name asserted something now false. The floor applies wherever selection actually resolves: the role's declared effort on a `per-agent` platform, the spawn argument on a `per-spawn` platform, the engagement-tier-derived session effort on a `session` platform.
 
 ### Function-First Selection Rules [DERIVED] [← Chain 7]
 
 The manager chooses the **effort tier** per spawn by the spawn's **function** (what the role is doing in this engagement), with role defaults as a secondary anchor. The function rules below override the role-default table when they conflict - a role's default tier is the floor for routine engagements, not a ceiling on adversarial or high-risk ones.
 
-These rules select effort, not a model: every spawn runs the same model. On a platform whose `effort_binding` is `session`, they cannot vary a per-spawn parameter, and instead tell the manager which spawns warrant the session's attention budget; see Effort Binding Site above.
+These rules select effort. They resolve against the role's declared effort where the platform reads one, and they are also the documented occasion to override the role's **model class**: a spawn whose function lands above its role's class is promoted to the authoring class for that spawn. On a platform whose `effort_binding` is `session`, they cannot vary an effort parameter, and instead tell the manager which spawns warrant the session's attention budget; see Effort Binding Site above.
+
+The adversarial reviewer slot is the promotion that matters most. It is the load-bearing critique surface, it is the one advisory spawn whose independence does real work, and it is promoted regardless of which role fills it.
 
 - **Adversarial reviewer slot (any role)** -> **{tier-reasoning}**. The reviewer's output is forwarded verbatim and must break the work; it is the load-bearing critique surface and warrants the deepest reasoning regardless of the reviewer's default.
 - **Complex-tier lead implementer** -> **{tier-reasoning}**. Complex-tier work is by definition ambiguous, cross-domain, or high-blast-radius; the lead carries the synthesis weight.
@@ -318,25 +336,31 @@ These rules select effort, not a model: every spawn runs the same model. On a pl
 - **Phase-1 stakeholder analysts (output compressed to FINDING / TENSION per §5)** -> **{tier-implementation}**; drop to **{tier-routine}** for bounded or lightweight lenses (e.g., docs-only review, mechanical conformance checks).
 - **Specialists engaged on a domain trigger** -> **{tier-implementation}** by default; escalate to **{tier-reasoning}** when their domain is the **decisive risk** for the engagement (e.g., security on an auth/crypto change, reliability on an SLO-impacting change, data architect on a destructive migration).
 
-### Per-Role Default Tier (adjustable; function rules always win)
+### Per-Role Model Class and Default Tier (adjustable; function rules always win)
 
-These are **starting defaults** for the role when no function rule applies. Treat them as adjustable per engagement — the function rules above always take precedence when any of them applies (reviewer-slot, Complex-tier lead, Moderate-tier lead, Phase-1 analyst, or domain-trigger specialist). The per-role default below fires only when no function rule matches the spawn.
+These are **starting defaults** for the role when no function rule applies. Treat them as adjustable per engagement — the function rules above always take precedence when any of them applies (reviewer-slot, Complex-tier lead, Moderate-tier lead, Phase-1 analyst, or domain-trigger specialist). The per-role default below fires only when no function rule matches the spawn. Where the platform reads model and effort from the agent definition, this table *is* what those definitions declare, and the definitions are the single source of truth: if the two disagree, the definitions win and the divergence is a defect.
 
-| Default Tier | Roles |
-|--------------|-------|
-| **{tier-reasoning}** | Distinguished Engineer, Security Engineer, Site Reliability Engineer, Engineering Consultant |
-| **{tier-implementation}** | Software Engineer, Solutions Architect, DevOps Engineer, Test Engineer, Data Architect, Data Scientist, ML Engineer, Enterprise Architect |
-| **{tier-routine}** | Business Analyst, Product Manager, Executive Leadership Coach, Technical Writer - escalate to **{tier-implementation}** when user-facing prose or a decision artifact is the deliverable |
+| Class | Default Tier | Turn ceiling | Roles |
+|-------|--------------|--------------|-------|
+| **authoring** | {tier-implementation} | none - its turns produce the deliverable | Software Engineer |
+| **advisory**, may author | {tier-routine} | bounded, higher band | Distinguished Engineer, Test Engineer, DevOps Engineer, Technical Writer |
+| **advisory** | {tier-routine} | bounded, lower band; artifact-writing tools withheld | Business Analyst, Data Architect, Data Scientist, Engineering Consultant, Enterprise Architect, Executive Leadership Coach, ML Engineer, Product Manager, Security Engineer, Site Reliability Engineer, Solutions Architect |
+
+The middle row is not a hedge. Those four roles were observed producing a durable artifact often enough that withholding the write capability would break real work, so they are bounded rather than blocked. A role moves to the bottom row once its handbacks stop needing a file.
+
+This table replaces an earlier one that assigned deeper defaults by perceived seniority and domain gravity - Distinguished Engineer, Security Engineer and Site Reliability Engineer at {tier-reasoning}, and so on. That grouping did not survive contact with evidence: it predicted spend, not value, because the roles it elevated were overwhelmingly reading rather than writing.
 
 ### Effort Application [EXTERNAL]
 
 Effort is the mechanism this section selects. How it is applied depends on `platform.effort_binding` (see Effort Binding Site above).
 
-Where binding is **`session`**, effort cannot be varied per expert. Expert agents are spawned as the platform's general-purpose subagent type with profile content injected via the Onboard primitive, and that spawn surface exposes no per-invocation effort knob. The manager therefore sets session effort once per engagement from `platform.engagement_effort`, and raises it if triage re-classifies the engagement upward mid-run. **Do not fabricate per-expert effort control on such a platform**: naming an effort level in a spawn prompt documents intent, it does not set a parameter, and it must never be presented as enforcement.
+Where binding is **`per-agent`**, each role declares its own effort and the declaration governs for the duration of the spawn. Session effort still covers the manager's own turns and is set once at triage from `platform.engagement_effort`. The function-first rules identify which spawns warrant a promotion above their role's declaration.
 
-Where binding is **`per-spawn`**, the function-first rules apply directly to the spawn call and no session-level approximation is needed.
+Where binding is **`per-spawn`**, the function-first rules apply directly to the spawn call and no approximation is needed.
 
-Re-architecting experts as native, distinct subagent types would make per-expert effort controllable on a `session` platform too. That remains deferred: it is a substrate change, not a protocol change.
+Where binding is **`session`**, effort cannot be varied per expert: expert agents reach the platform only as its general-purpose subagent type with profile content injected via the Onboard primitive, and that surface exposes no per-invocation effort knob. The manager sets session effort once per engagement from `platform.engagement_effort`. **Do not fabricate per-expert effort control on such a platform**: naming an effort level in a spawn prompt documents intent, it does not set a parameter, and it must never be presented as enforcement.
+
+**A caution about the `session` case, learned the expensive way.** This section previously recorded `session` as the binding for a target that in fact read its agent definitions, on the reasoning that profiles reached experts only through the Onboard injection path. That reasoning was checkable and wrong: the target registered the profiles as first-class subagent types and spawned them by type, so the injection path was not the path being taken and the declarations were live all along. Because the mistake was recorded as a *structural impossibility* rather than an unverified assumption, downstream prose hardened it into a prohibition - one target's generated protocol went so far as to call an omitted model parameter "a defect, not a shortcut", enforcing uniformity that the platform had never required. Before recording `session` for any target, confirm against observed spawn records that the general-purpose path is the one actually taken; absent that evidence, the honest value is the capability the platform documents, not the one the generator assumes.
 
 ---
 
