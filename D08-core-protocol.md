@@ -143,6 +143,65 @@ Blockquote (verbatim):
   FALSIFIER: A commit message, branch name, or PR title/description contains a .claude/BACKLOG.md item identifier
   TEST: HYG-001, HYG-002
 
+### Output Economy [STRUCTURAL]
+
+Canonical cross-cutting rule governing prose volume in every artifact the system produces. Binds the manager and every spawned expert agent.
+
+**Render targets — this rule does NOT emit as a CONDUCTOR subsection.** The conductor-inject payload is capped at 15,000 bytes and sits within ~150 bytes of that cap; the full rule does not fit, and emitting it there would displace load-bearing protocol content to buy a style rule. The split below is a consequence of that budget, not a preference:
+
+| Target | Step | Content |
+|--------|------|---------|
+| `CONDUCTOR.md` tail block | step-01 | the compressed reminder only, as the file's final content |
+| `reference/expert-preamble.md` | step-02 | the full rule, scoped to the handback; loaded before every expert profile |
+| `reference/communication-standards.md` | step-04 | worked prose anti-patterns and per-artifact length calibration; on-demand at Moderate/Complex |
+
+The preamble is the load-bearing target: it reaches every spawned agent, and spawned agents author the handbacks and deliverables where prose bloat actually accumulates. CONDUCTOR carries only the reminder because a conciseness rule stated nowhere in a long prompt does not bind, and one stated at length refutes itself.
+
+CONDUCTOR tail block (verbatim, emitted as the final content of the file):
+```
+<tone_preference>
+Lead with the outcome; cut packaging. Never cut a finding, risk, dissent, or falsifier to save words.
+</tone_preference>
+```
+
+Binding scope for the full-rule targets (verbatim):
+```
+Applies to the manager and every spawned expert agent, across three surfaces. Each needs its own discipline - one general instruction to "be concise" moves only the first.
+```
+
+Surface rules (verbatim):
+```
+**Responses.** Lead with the outcome: the first sentence answers "what happened" or "what did you find". Keep caveats and disclaimers short and spend the response on the main answer. Give a high-level summary unless depth was asked for.
+
+**Narration during work.** One sentence before the first tool call. After that, speak only on a material finding or a change of direction. Do not announce each step before taking it.
+
+**Written deliverables.** Match document length to what the task needs. Do not pad with filler sections, redundant summaries, or boilerplate. Do not open a section with a preview of itself or close it with a recap, and do not append a summary to a document that already stated its conclusions.
+```
+
+Slot rule (verbatim):
+```
+**Cap the slot, not the document.** Fixed word counts belong only on fixed-size slots - PR titles, commit subjects, one-line summaries. On variable-length work (reviews, docs, analyses) constrain the unit instead: one to two sentences per finding, one line per gate item. A word budget on a review drops findings rather than tightening them.
+```
+
+Floor clause (verbatim) - this clause is load-bearing and MUST NOT be dropped when the subsection is compressed:
+```
+Economy is not omission. Cutting a finding, a risk, a dissent, or a falsifier to save words is a quality-gate failure, not concision.
+```
+
+**Rationale**: verbosity control and reporting completeness pull against each other. Preference-trained models conflate length with quality, so an unqualified brevity instruction is followed literally and suppresses findings - the same failure mode as instructing a reviewer to "only report significant issues". The floor clause is what makes the economy rule safe to apply inside an adversarial-review system: it bounds what economy may take from, leaving prose as the only thing it can cut. Compression targets packaging (preambles, recaps, restatement, filler), never content required by the handback protocol or the quality gates.
+
+[INVARIANT] Every render target that emits any Output Economy surface rule MUST also emit the floor clause.
+  FALSIFIER: `reference/expert-preamble.md` or `reference/communication-standards.md` states a surface or slot rule without a clause barring the removal of findings, risks, dissent, or falsifiers
+  TEST: ECON-001
+
+[INVARIANT] The CONDUCTOR tail block MUST carry the floor half of the rule, not the economy half alone.
+  FALSIFIER: CONDUCTOR.md ends with a `<tone_preference>` block telling the manager to be brief without the clause barring cuts to findings, risks, dissent, or falsifiers
+  TEST: ECON-003
+
+[INVARIANT] Output Economy MUST NOT specify a numeric word or token budget for any handback field, review body, or generated document.
+  FALSIFIER: A word-count or token-count ceiling appears on a variable-length deliverable in CONDUCTOR.md or any reference file
+  TEST: ECON-002
+
 ---
 
 ## 3. Two-Dimensional Triage [EXACT where noted]
