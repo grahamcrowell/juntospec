@@ -65,6 +65,20 @@ Three components (verbatim):
 **DO NOT**: Write code, documentation (except BACKLOG.md), or configuration directly. Debug, implement fixes, or produce domain-expert deliverables.
 ```
 
+<a id="orchestration-command"></a>
+
+Scope of the boundary [CANONICAL: orchestration-command]:
+
+The boundary binds inside an **orchestration command** and at Moderate/Complex tier, where delegation is what creates the review boundary that makes peer review possible. It does NOT bind on free-form requests outside an invoked command, at Trivial/Simple tier, or where the host project's own instructions define a hands-on workflow.
+
+An **orchestration command** is any seed command that produces or alters a work product on the user's behalf — the cycle runner, the single-item task lifecycle, and the delivery, watch and review commands of `D56` § Seed Commands. **This membership list is authoritative and MUST appear exactly once in a generated protocol file**; every other subsection that needs it (the Self-Check gate, the Triage Requirement) references this definition rather than restating the members.
+
+[INVARIANT] Every command that can write code, publish a change, or post externally visible commentary MUST be a member of the orchestration-command set, and that set MUST be enumerated in exactly one place in the generated protocol file.
+  FALSIFIER: A command that writes code or publishes a change is absent from the enumeration (so a scope self-check answers "not in an orchestration command" and the boundary does not bind for it), OR the membership list appears in two or more places in the generated protocol file
+  TEST: DEL-004 (spec-only placeholder — enumeration-uniqueness test not yet implemented)
+
+*Design intent*: the failure this guards is silent. A code-writing command missing from the list does not error — it simply implements without delegating, and therefore without the adversarial review the tier nominally requires, while still reporting that it followed the protocol.
+
 Manager permissions (verbatim):
 ```
 **Manager MAY directly**: Read files, run diagnostics, manage backlog (BACKLOG.md / `oj-helper issue-tracker-*`), synthesize findings, ask questions, triage, review expert outputs.
@@ -88,8 +102,10 @@ Subsection header: `### Triage Requirement`
 
 Statement (verbatim):
 ```
-Assess every request routed through the coordinated-cycle command primitives (the cycle-runner and single-item task-lifecycle commands) before engagement. Two dimensions: execution model and stakeholder identification. Free-form messages outside an invoked command do not require triage — answer directly.
+Assess every request routed through an orchestration command before engagement. Two dimensions: execution model and stakeholder identification. Free-form messages outside an invoked command do not require triage — answer directly.
 ```
+
+**"Orchestration command" is defined once, in the Delegation Boundary's SCOPE, and referenced everywhere else.** The set is open — it grows as delivery and review surfaces are added (`D56` § Seed Commands) — so any subsection that needs it MUST point at that one definition rather than restate the membership. A restated enumeration is what lets the set go stale: a command added to one copy and not another is a boundary that silently stops binding for it, which no test catches because both copies remain internally consistent.
 
 [OBSERVABLE] Manager MUST assess every request routed through a coordinated-cycle command primitive on both triage dimensions (execution model and stakeholder identification) before engaging with the task. Requests outside an invoked cycle command are exempt from this requirement.
   FALSIFIER: Manager begins execution (spawning agents, applying perspectives, or implementing) on a cycle-command-routed request without first producing a triage assessment with execution model and stakeholder list

@@ -88,6 +88,8 @@ Capabilities compose into three activation modes depending on context.
 
 **Ad-hoc mode** skips Discover (user provides work item directly) and Learn (no backlog to update). **Automated mode** may skip Triage when the pipeline predetermines classification.
 
+Ad-hoc mode is realized by the § Change Review Command. It had no seed command for several releases, which meant the one mode the spec illustrated with a concrete example ("review this change for security issues") was the only mode a user could not invoke directly — reaching it required routing the request through a backlog-driven command that would then find nothing to select.
+
 ---
 
 ## Default Composition — The Task Lifecycle
@@ -220,7 +222,8 @@ Tell the user the cycle is complete, summarize what was done, and suggest `/clea
 
 | Principle | Rule | Rationale |
 |-----------|------|-----------|
-| **Verb-Noun Naming** | Commands use verb-noun pattern (`run-task`, `show-backlog`, `save-session`) | Intent clear, no ambiguity |
+| **Verb-Noun Naming** | Commands PREFER a verb-noun pattern (`run-task`, `show-backlog`, `save-session`, `watch-pr`). A bare verb, or a settled abbreviation, is permitted where it is unambiguous standing alone AND names a stage of the workflow users already speak in (`spec`, `impl`, `review`). The requirement is that intent be unmistakable, not that two words be used. | Intent clear, no ambiguity. Stated as a preference because the strict form was already being broken by name choices that were the clearer option; an unstated exception accumulates silently, a stated one can be argued with |
+| **Explicit Argument Contract** | A command taking arguments MUST declare its expected arguments for discovery/autocomplete, consume the argument string explicitly rather than relying on a host fallback, and validate arity BEFORE acting - stopping with its usage line rather than proceeding on a guess. Flags and any trailing free-form prompt are parsed in one stated grammar, in one place. | A silently mis-bound argument is worse than a rejected invocation: a command that guesses a subject writes the right document to the wrong location and reports success |
 | **Backlog Source Abstraction** | All backlog-reading operations use identical Backlog Source Detection logic | issue tracker vs BACKLOG.md mode transparent and consistent |
 | **Graceful Degradation** | Handle missing files, missing tools, and network failures without crashing (issue tracker fails → log and continue; no PRs → skip step; empty backlog → clear message) | Commands remain operable in degraded environments |
 | **User Approval Gates** | Commands with side effects require explicit approval: Phase 2 triage via `AskUserQuestion`; session save presents diff before writing | Prevent unintended side effects |
@@ -242,7 +245,7 @@ description: "Brief description shown in command picker"
 Instructional content for the agent to follow.
 ```
 
-Commands are **imperative instructions** defining protocols — step-by-step procedures with decision points, constraints, and fallback behaviors. The three seed commands below are described by PURPOSE; the generation prompt determines actual names.
+Commands are **imperative instructions** defining protocols — step-by-step procedures with decision points, constraints, and fallback behaviors. The seed commands below are described by PURPOSE; the generation prompt determines actual names. (This sentence previously said "the three seed commands" and had been wrong since the fourth was added — the count is deliberately not restated here, so that adding one does not require editing prose that has no other reason to change.)
 
 ### Task Lifecycle Command (single-item)
 
@@ -360,9 +363,67 @@ Commands are **imperative instructions** defining protocols — step-by-step pro
 
 ### Spec Authoring Command (front-half)
 
-**Purpose**: Author the front-half specification artifacts (requirements → design → implementation-plan) for a Moderate/Complex subject, scaling ceremony to tier, then **graduate** the plan's tasks into the backlog so the task lifecycle can execute them. Requirements/design/plan modes produce durable, self-contained documents; a `refresh` mode re-aligns downstream artifacts (and re-graduates) when an upstream input changes.
+**Purpose**: Author the front-half specification artifacts (requirements → design → implementation-plan) for a Moderate/Complex subject, scaling ceremony to tier, then **graduate** the plan's tasks into the backlog so the task lifecycle can execute them. Requirements/design/plan modes produce durable, self-contained documents; a `refresh` mode re-aligns downstream artifacts (and re-graduates) when an upstream input changes; a `capture` mode folds rulings reached in the current session into the subject's existing documents.
 
-**Invocation**: One argument selecting the target artifact/mode: `reqs | design | plan | refresh`. The `plan` mode ends by graduating tasks per the Backlog Graduation section below; `refresh` re-runs graduation idempotently.
+**Invocation**: A mode, a subject, and an optional tracked-item identifier: `<mode> <subject> [ID]`, where `<mode>` is `reqs | design | plan | refresh | capture` and `<subject>` is the relative node path owning the work. Free-form prompt text may follow. The `plan` mode ends by graduating tasks per the Backlog Graduation section below; `refresh` re-runs graduation idempotently; `capture` re-runs it only if it changed a plan task.
+
+**The subject is a required argument, not an inference.** It is the value the command passes as the owning-node selector when resolving a typed filing location, so it decides where every document this command writes lands. A command that infers the subject from prose files a correct document at a wrong location and reports success. Where the active layout has no per-type filing surface, the subject still names the subject but cannot name a directory: the command MUST say so explicitly and fall back to the artifacts root, rather than inventing a node.
+
+**`refresh` and `capture` are distinct modes and MUST NOT be merged.** `refresh` propagates a change already written into an upstream *document* and re-graduates; `capture` folds decisions reached in *conversation* into whatever documents exist. Their inputs differ in kind, so one mode would have to guess which was meant. `capture` reads session history, so it MUST NOT be executed in an isolated context that lacks that history — doing so captures nothing while reporting success. A scope-narrowing identifier is the difference between a whole-subject and a single-item pass; it is not grounds for a further mode.
+
+**Rulings that constrain later work are filed as decisions**, appended to the subject's decision record and never renumbered, since earlier documents and graduated backlog items cite them by identifier.
+
+### Implementation Delivery Command (single-item, proposal-delivering)
+
+**Purpose**: Take exactly ONE unblocked backlog item from selected to **a proposed change published for review** — an isolated working copy on its own branch, the full task lifecycle including the adversarial review, and then a draft change proposal (a PR, on platforms that have them) opened against the integration branch. It is the delivery-shaped sibling of the task-lifecycle command: same five phases, different Deliver surface.
+
+**Invocation**: A subject, an optional item identifier, and an optional explicit branch. With no identifier the command summarizes unblocked *implementation* candidates, recommends one, and puts the choice to the user; it MUST NOT select silently, and MUST NOT invent work when nothing is unblocked.
+
+**Composition, not duplication.** This command MUST compose the task lifecycle rather than restate it: Discover, Triage, Execute and the test half of Deliver are the lifecycle's, unchanged, and this command adds only working-copy isolation before them and change-proposal delivery after them. A second copy of the lifecycle is a spec violation, not an implementation detail — it is how two commands drift into disagreeing about triage.
+
+**Work that is not implementation work is routed, not absorbed.** An item whose acceptance criteria call for a decision, a document, or a specification belongs to the front-half authoring command. Say so and stop.
+
+[INVARIANT] A command that publishes a change externally (pushing a branch, opening or updating a change proposal, posting externally visible commentary) MUST obtain explicit user approval immediately before the FIRST such action in an invocation, presenting at minimum the target ref, the change set, the verification command's actual output, and the review verdict. Approval covers that invocation only and MUST NOT be inferred from a prior invocation, from the user having requested the work, or from the action having succeeded before. Nothing may reach the remote before approval.
+  FALSIFIER: An invocation pushes a branch, opens a change proposal, or posts external commentary without an approval gate in that same invocation, OR treats a previous invocation's approval as still standing
+  TEST: CMD-006 (spec-only placeholder — gate test not yet implemented)
+
+[INVARIANT] The implementation-delivery command MUST stop at the published draft proposal: it MUST NOT integrate the change (no merge, no auto-merge enablement), MUST NOT mark the backlog item done, and MUST NOT block awaiting a human action. Carrying an open proposal to integration belongs to the § Change Watch Command.
+  FALSIFIER: The command merges or enables auto-merge, marks the item done before integration, or waits in-invocation for a human to merge
+  TEST: CMD-007 (spec-only placeholder)
+
+### Change Watch Command
+
+**Purpose**: Carry an already-published change proposal from "open" to "integrated and closed out" — diagnose and fix failing automated checks, address review commentary, and once a human has integrated it, close out the originating backlog item and reconcile every reference to the proposal's state.
+
+**Invocation**: A proposal reference, and optionally the backlog item it closes out.
+
+**Every invocation re-derives state from the proposal itself** and performs only what that state requires. The command holds no memory between invocations. This is what makes it resumable: an interrupted, cleared or abandoned run costs nothing, and a run against an already-integrated proposal performs close-out once and says so.
+
+**Why this is a separate command.** Waiting on automated checks and on a human reviewer is open-ended. Folding that wait into the command that produced the change would make that command un-resumable and would spend its context idling — so the wait is isolated behind a command boundary that can be re-entered cheaply.
+
+**A failing check is diagnosed from its actual output**, never inferred from its name, and never rationalized into a pass. Distinguishing a genuine failure from infrastructure flake is a stated conclusion with evidence, because treating a real failure as flake and retrying is how a broken change reaches the integration branch.
+
+[INVARIANT] The change-watch command MUST NOT integrate the change: a human performs the integration. It MUST NOT merge, MUST NOT enable auto-merge, and MUST NOT force-update a published ref. Close-out actions run only after the proposal independently reports itself integrated.
+  FALSIFIER: The command merges, enables auto-merge, force-updates a published ref, or performs close-out on a proposal that is not integrated
+  TEST: CMD-008 (spec-only placeholder)
+
+### Change Review Command
+
+**Purpose**: Adversarially review work that already exists — a path in the working tree, or a published change proposal — and produce findings that survive scrutiny, filed durably. This is the § Activation Modes ad-hoc mode: no backlog is read and no item is selected. Optional modifiers apply the confirmed findings as changes, and record them as commentary on the reviewed proposal.
+
+**Invocation**: A target (a path, or a proposal reference), plus optional independent modifiers for applying fixes and for posting the findings. The posting modifier REQUIRES a proposal target — there is nowhere to post findings for a bare path — and the command MUST refuse rather than silently degrade to a local-only review, because the user asked for something their reviewers would see.
+
+**The reviewer MUST be an agent distinct from the one that assembled the change under review, and from the manager.** This is the load-bearing constraint of the whole command: an agent asked to critique material already in its own context rationalizes it, so a review performed inline has removed the mechanism it depends on while still producing review-shaped output. Where fixes are applied, the applying agent MUST also be distinct from the reviewing agent — an agent that patches its own findings is grading its own work.
+
+**Findings carry a confidence verdict**, and only *demonstrated* findings — those for which the reviewer named a concrete input or state producing the wrong result — are eligible for automatic fixing. Applying a merely-reasoned finding changes working code on a guess. Findings that were skipped are listed with the reason.
+
+**Review findings are filed to a history area, never to the owning node.** A review is a point-in-time finding *about* work: it ages out as the work changes, so filing it as design would make it answer "what is the current design?" when it does not. The location is resolved through the canonical state-path resolver under its own key, never written as a literal path — a hardcoded location resolves correctly only in the workspace it was written for. Where a review also concludes something about what the work *should be*, the document is SPLIT: findings to history, new intent to the node via the front-half authoring command.
+
+**Externally posted findings MUST be self-contained.** They MUST NOT cite a local-only artifact — a state-tree path, a local backlog identifier, or a numbered finding from a local file — since those referents cannot be opened by the reviewer reading them. Posting MUST be idempotent against a stable marker identifying the reviewed revision, so that re-running updates or skips rather than duplicating a set of findings.
+
+[INVARIANT] The change-review command MUST delegate the review to an agent distinct from the manager, at every tier, and MUST apply fixes (when asked) via an agent distinct from the reviewing agent. Absent any modifier the command is read-only: it MUST NOT alter the work under review and MUST NOT post anything externally.
+  FALSIFIER: The manager performs the review inline, OR the reviewing agent also applies the fixes, OR an invocation with no modifier alters code or posts commentary
+  TEST: CMD-009 (spec-only placeholder)
 
 ---
 
